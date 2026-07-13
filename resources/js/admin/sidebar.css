@@ -1,0 +1,79 @@
+/* resources/css/admin/sidebar.css */
+@layer components {
+    .sidebar-link {
+        @apply flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-800;
+    }
+    
+    .sidebar-link.active {
+        @apply bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25;
+    }
+    
+    .sidebar-link i {
+        @apply w-5 text-center;
+    }
+    
+    .sidebar-link .icon {
+        @apply w-5 h-5 flex-shrink-0;
+    }
+    
+    .sidebar-submenu {
+        @apply ml-4 border-l-2 border-gray-700 pl-3 space-y-1;
+    }
+    
+    .sidebar-badge {
+        @apply inline-flex items-center justify-center rounded-full font-bold text-xs px-1.5 py-0.5 min-w-[1.25rem];
+    }
+    
+    .sidebar-badge-gray {
+        @apply bg-gray-600 text-white;
+    }
+    
+    .sidebar-badge-red {
+        @apply bg-red-500 text-white;
+    }
+    
+    .sidebar-badge-green {
+        @apply bg-green-500 text-white;
+    }
+    
+    .sidebar-badge-yellow {
+        @apply bg-yellow-500 text-white;
+    }
+    
+    .sidebar-badge-blue {
+        @apply bg-blue-500 text-white;
+    }
+    
+    .sidebar-badge-indigo {
+        @apply bg-indigo-500 text-white;
+    }
+    
+    .sidebar-badge-purple {
+        @apply bg-purple-500 text-white;
+    }
+}
+
+/* Sidebar transitions */
+.sidebar-enter-active,
+.sidebar-leave-active {
+    transition: all 0.3s ease;
+}
+
+.sidebar-enter-from,
+.sidebar-leave-to {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+/* Dark mode support */
+.dark .sidebar {
+    @apply bg-gray-900;
+}
+
+.dark .sidebar-link {
+    @apply text-gray-400 hover:text-white hover:bg-gray-800;
+}
+
+.dark .sidebar-link.active {
+    @apply bg-indigo-600 text-white;
+}

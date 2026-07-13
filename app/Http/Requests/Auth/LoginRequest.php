@@ -38,20 +38,37 @@ class LoginRequest extends FormRequest
      *
      * @throws ValidationException
      */
-    public function authenticate(): void
-    {
-        $this->ensureIsNotRateLimited();
+  public function authenticate(): void
+{
+    $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+    // Bypass ALL global scopes to find the user (including tenant scope)
+    $user = \App\Models\User::withoutGlobalScopes()
+        ->where('email', $this->email)
+        ->first();
+
+    if ($user && \Hash::check($this->password, $user->password)) {
+        // Check if user is active
+        if (!$user->is_active) {
             RateLimiter::hit($this->throttleKey());
-
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => 'Your account is inactive. Please contact support.',
             ]);
         }
-
+        
+        // Log the user in
+        \Auth::login($user, $this->boolean('remember'));
         RateLimiter::clear($this->throttleKey());
+        return;
     }
+
+    // Authentication failed
+    RateLimiter::hit($this->throttleKey());
+
+    throw ValidationException::withMessages([
+        'email' => trans('auth.failed'),
+    ]);
+}
 
     /**
      * Ensure the login request is not rate limited.
