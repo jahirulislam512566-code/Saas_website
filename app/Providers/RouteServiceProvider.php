@@ -10,12 +10,26 @@ use Illuminate\Support\Facades\Route;
 
 class RouteServiceProvider extends ServiceProvider
 {
-    public const HOME = '/admin';
+    /**
+     * The path to your application's "home" route.
+     *
+     * Typically, users are redirected here after authentication.
+     *
+     * @var string
+     */
+    public const HOME = '/'; // Changed from '/dashboard' to '/'
 
+    /**
+     * Define your route model bindings, pattern filters, and other route configuration.
+     */
     public function boot(): void
     {
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
         });
 
         $this->routes(function () {
@@ -25,14 +39,26 @@ class RouteServiceProvider extends ServiceProvider
 
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
-
-            // Admin Routes
-            Route::middleware('web')
-                ->group(base_path('routes/admin.php'));
-
-            // Webhook Routes (Public, no auth)
-            Route::middleware('web')
-                ->group(base_path('routes/webhooks.php'));
         });
+    }
+
+    /**
+     * Get the redirect path after authentication.
+     */
+    public function getRedirectPath(Request $request): string
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return '/';
+        }
+
+        // Only redirect admin/super_admin to their dashboards
+        if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+            return route('admin.dashboard');
+        }
+
+        // All other users go to homepage
+        return '/';
     }
 }

@@ -1,227 +1,291 @@
-{{-- resources/views/admin/reports/revenue.blade.php --}}
-@extends('admin.layouts.admin')
+<!-- admin/reports/revenue.blade.php -->
+@extends('layout.app')
 
-@section('title', 'Revenue Report')
-
-@section('breadcrumb')
-    <li>
-        <div class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2 text-sm"></i>
-            <a href="{{ route('admin.reports.index') }}" class="text-gray-500 hover:text-gray-700">Reports</a>
-        </div>
-    </li>
-    <li>
-        <div class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2 text-sm"></i>
-            <span class="text-gray-500">Revenue</span>
-        </div>
-    </li>
-@endsection
+@section('title', 'Revenue Reports')
+@section('page-title', 'Revenue Reports')
+@section('page-subtitle', 'Track revenue streams, subscriptions, and payment analytics')
 
 @section('content')
-<div class="space-y-6">
-    <!-- ===== HEADER ===== -->
-    <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Revenue Report</h1>
-            <p class="text-sm text-gray-500 mt-1">Track revenue and financial performance</p>
-        </div>
-        <div class="flex items-center space-x-3">
-            <button onclick="exportReport('revenue')" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                <i class="fas fa-download mr-2"></i> Export
-            </button>
-            <button onclick="printReport()" class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                <i class="fas fa-print mr-2"></i> Print
-            </button>
-        </div>
-    </div>
-
-    <!-- ===== DATE RANGE ===== -->
-    <div class="bg-white rounded-xl shadow-sm p-4">
-        <form method="GET" class="flex flex-wrap items-end gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                <input type="date" name="start_date" value="{{ request('start_date', now()->subDays(30)->format('Y-m-d')) }}"
-                       class="rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                <input type="date" name="end_date" value="{{ request('end_date', now()->format('Y-m-d')) }}"
-                       class="rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Currency</label>
-                <select name="currency" class="rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                    <option value="USD" {{ request('currency', 'USD') == 'USD' ? 'selected' : '' }}>USD</option>
-                    <option value="EUR" {{ request('currency') == 'EUR' ? 'selected' : '' }}>EUR</option>
-                    <option value="GBP" {{ request('currency') == 'GBP' ? 'selected' : '' }}>GBP</option>
-                    <option value="CAD" {{ request('currency') == 'CAD' ? 'selected' : '' }}>CAD</option>
+<div x-data="revenueReport()" x-init="init()">
+    <!-- Filters -->
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm mb-6">
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Date Range:</label>
+                <select x-model="filters.period" @change="applyFilters()"
+                        class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                    <option value="week">Last 7 Days</option>
+                    <option value="month">Last 30 Days</option>
+                    <option value="quarter">Last 90 Days</option>
+                    <option value="year">Last 365 Days</option>
+                    <option value="custom">Custom</option>
                 </select>
             </div>
-            <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                <i class="fas fa-sync mr-2"></i> Update Report
+
+            <div x-show="filters.period === 'custom'" class="flex items-center gap-2">
+                <input type="date" x-model="filters.date_from" 
+                       class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                <span class="text-gray-500">to</span>
+                <input type="date" x-model="filters.date_to" 
+                       class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Revenue Type:</label>
+                <select x-model="filters.type" @change="applyFilters()"
+                        class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                    <option value="all">All Revenue</option>
+                    <option value="subscriptions">Subscriptions</option>
+                    <option value="one_time">One-Time Payments</option>
+                    <option value="upgrades">Upgrades</option>
+                    <option value="refunds">Refunds</option>
+                </select>
+            </div>
+
+            <button @click="applyFilters()" 
+                    class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all">
+                <i class="fas fa-sync mr-1.5"></i>Update
             </button>
-        </form>
-    </div>
-
-    <!-- ===== STATS CARDS ===== -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover">
-            <p class="text-sm text-gray-500">Total Revenue</p>
-            <p class="text-xl font-bold text-gray-900">${{ number_format($stats['total'] ?? 0, 2) }}</p>
-            <div class="mt-1 text-xs text-green-600">
-                <i class="fas fa-arrow-up mr-1"></i> +{{ $stats['growth'] ?? 0 }}%
-            </div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover">
-            <p class="text-sm text-gray-500">MRR</p>
-            <p class="text-xl font-bold text-blue-600">${{ number_format($stats['mrr'] ?? 0, 2) }}</p>
-            <div class="mt-1 text-xs text-blue-600">
-                <i class="fas fa-arrow-up mr-1"></i> +{{ $stats['mrr_growth'] ?? 0 }}%
-            </div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover">
-            <p class="text-sm text-gray-500">ARR</p>
-            <p class="text-xl font-bold text-green-600">${{ number_format($stats['arr'] ?? 0, 2) }}</p>
-            <div class="mt-1 text-xs text-green-600">
-                <i class="fas fa-arrow-up mr-1"></i> +{{ $stats['arr_growth'] ?? 0 }}%
-            </div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover">
-            <p class="text-sm text-gray-500">ARPU</p>
-            <p class="text-xl font-bold text-purple-600">${{ number_format($stats['arpu'] ?? 0, 2) }}</p>
-            <div class="mt-1 text-xs text-purple-600">
-                <i class="fas fa-arrow-up mr-1"></i> +{{ $stats['arpu_growth'] ?? 0 }}%
-            </div>
         </div>
     </div>
 
-    <!-- ===== CHARTS ===== -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white rounded-xl shadow-sm p-6">
-            <h3 class="text-sm font-medium text-gray-900 mb-4">Revenue Trends</h3>
-            <div class="h-64">
-                <canvas id="revenueTrendChart"></canvas>
+    <!-- Revenue KPIs -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="'$' + formatNumber(stats.total_revenue)">$0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/20 flex items-center justify-center">
+                    <i class="fas fa-chart-line text-indigo-600 dark:text-indigo-400"></i>
+                </div>
+            </div>
+            <div class="mt-2 flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
+                <i class="fas fa-arrow-up"></i> <span x-text="stats.revenue_growth + '%'"></span> vs last period
             </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-6">
-            <h3 class="text-sm font-medium text-gray-900 mb-4">Revenue Breakdown</h3>
-            <div class="h-64">
-                <canvas id="revenueBreakdownChart"></canvas>
+
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">MRR</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="'$' + formatNumber(stats.mrr)">$0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                    <i class="fas fa-calendar-check text-green-600 dark:text-green-400"></i>
+                </div>
+            </div>
+            <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Monthly Recurring Revenue
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">ARR</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="'$' + formatNumber(stats.arr)">$0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                    <i class="fas fa-calendar-alt text-purple-600 dark:text-purple-400"></i>
+                </div>
+            </div>
+            <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Annual Recurring Revenue
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Churn Rate</p>
+                    <p class="text-2xl font-bold text-red-600" x-text="stats.churn_rate + '%'">0%</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                    <i class="fas fa-user-minus text-red-600 dark:text-red-400"></i>
+                </div>
+            </div>
+            <div class="mt-2 flex items-center gap-1 text-sm" 
+                 :class="stats.churn_trend < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+                <i :class="stats.churn_trend < 0 ? 'fas fa-arrow-down' : 'fas fa-arrow-up'"></i>
+                <span x-text="Math.abs(stats.churn_trend) + '%'"></span> vs last period
             </div>
         </div>
     </div>
 
-    <!-- ===== REVENUE TABLE ===== -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 class="text-sm font-medium text-gray-900">Revenue Details</h3>
-            <span class="text-xs text-gray-500">Total: ${{ number_format($revenueTotal ?? 0, 2) }}</span>
+    <!-- Revenue Breakdown -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div class="lg:col-span-2 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Revenue Breakdown</h4>
+            <div class="h-80">
+                <canvas x-ref="revenueBreakdownChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Revenue Sources</h4>
+            <div class="space-y-3">
+                <template x-for="source in revenueSources" :key="source.name">
+                    <div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-700 dark:text-gray-300" x-text="source.name"></span>
+                            <span class="text-gray-900 dark:text-white font-medium" x-text="'$' + formatNumber(source.value)"></span>
+                        </div>
+                        <div class="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div class="h-2 rounded-full transition-all duration-500"
+                                 :style="'width: ' + source.percentage + '%'"
+                                 :class="source.color"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            <span x-text="source.percentage + '%'"></span>
+                            <span x-text="source.count + ' transactions'"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscription Analytics -->
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-800">
+            <h4 class="font-semibold text-gray-900 dark:text-white">Subscription Analytics</h4>
         </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Revenue</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subscriptions</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">MRR</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ARR</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Growth</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Plan</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Subscribers</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">MRR</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ARR</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Growth</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Churn</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">LTV</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($revenueData as $data)
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-4 text-sm text-gray-500">{{ $data['date'] }}</td>
-                            <td class="px-6 py-4 text-sm font-medium text-gray-900">${{ number_format($data['revenue'], 2) }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500">{{ $data['subscriptions'] }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500">${{ number_format($data['mrr'], 2) }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500">${{ number_format($data['arr'], 2) }}</td>
-                            <td class="px-6 py-4 text-sm {{ $data['growth'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                {{ $data['growth'] >= 0 ? '+' : '' }}{{ number_format($data['growth'], 1) }}%
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                    <template x-for="plan in subscriptionPlans" :key="plan.id">
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full" :style="'background-color: ' + plan.color"></span>
+                                    <span class="text-gray-900 dark:text-white font-medium" x-text="plan.name"></span>
+                                </div>
                             </td>
+                            <td class="px-4 py-3 text-right text-gray-900 dark:text-white" x-text="formatNumber(plan.subscribers)"></td>
+                            <td class="px-4 py-3 text-right text-gray-900 dark:text-white" x-text="'$' + formatNumber(plan.mrr)"></td>
+                            <td class="px-4 py-3 text-right text-gray-900 dark:text-white" x-text="'$' + formatNumber(plan.arr)"></td>
+                            <td class="px-4 py-3 text-right">
+                                <span class="inline-flex items-center gap-1"
+                                      :class="plan.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+                                    <i :class="plan.growth >= 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+                                    <span x-text="Math.abs(plan.growth) + '%'"></span>
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-right text-red-600 dark:text-red-400" x-text="plan.churn + '%'"></td>
+                            <td class="px-4 py-3 text-right text-gray-900 dark:text-white" x-text="'$' + formatNumber(plan.ltv)"></td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">No revenue data found</td>
-                        </tr>
-                    @endforelse
+                    </template>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+@endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        new Chart(document.getElementById('revenueTrendChart'), {
-            type: 'line',
-            data: {
-                labels: @json($chartData['labels'] ?? []),
-                datasets: [
-                    {
-                        label: 'Revenue',
-                        data: @json($chartData['revenue'] ?? []),
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        fill: true,
-                        tension: 0.4
+function revenueReport() {
+    return {
+        filters: {
+            period: 'month',
+            date_from: '',
+            date_to: '',
+            type: 'all'
+        },
+        stats: @json($stats),
+        revenueSources: @json($revenueSources),
+        subscriptionPlans: @json($subscriptionPlans),
+        revenueBreakdownChart: null,
+        
+        init() {
+            this.initChart();
+        },
+        
+        initChart() {
+            const ctx = this.$refs.revenueBreakdownChart.getContext('2d');
+            this.revenueBreakdownChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: @json($chartData['labels']),
+                    datasets: [
+                        {
+                            label: 'Subscriptions',
+                            data: @json($chartData['subscriptions']),
+                            backgroundColor: 'rgba(79, 70, 229, 0.6)',
+                            borderColor: '#4f46e5',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'One-Time',
+                            data: @json($chartData['one_time']),
+                            backgroundColor: 'rgba(139, 92, 246, 0.6)',
+                            borderColor: '#8b5cf6',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Upgrades',
+                            data: @json($chartData['upgrades']),
+                            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                            borderColor: '#10b981',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563'
+                            }
+                        }
                     },
-                    {
-                        label: 'MRR',
-                        data: @json($chartData['mrr'] ?? []),
-                        borderColor: '#22c55e',
-                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'top' } },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { callback: function(v) { return '$' + v; } }
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { color: document.documentElement.classList.contains('dark') ? '#1f2937' : '#e5e7eb' },
+                            ticks: { color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563' }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { color: document.documentElement.classList.contains('dark') ? '#1f2937' : '#e5e7eb' },
+                            ticks: { 
+                                color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563',
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
                     }
                 }
-            }
-        });
-
-        new Chart(document.getElementById('revenueBreakdownChart'), {
-            type: 'doughnut',
-            data: {
-                labels: @json($breakdown['labels'] ?? []),
-                datasets: [{
-                    data: @json($breakdown['data'] ?? []),
-                    backgroundColor: ['#6366f1', '#8b5cf6', '#3b82f6', '#22c55e', '#f59e0b']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { boxWidth: 12, padding: 12, font: { size: 11 } }
-                    }
-                }
-            }
-        });
-    });
-
-    function exportReport(type) {
-        window.location.href = `/admin/reports/export/${type}?start_date={{ request('start_date') }}&end_date={{ request('end_date') }}`;
+            });
+        },
+        
+        applyFilters() {
+            const params = new URLSearchParams(this.filters);
+            window.location.href = `{{ route('admin.reports.revenue') }}?${params.toString()}`;
+        },
+        
+        formatNumber(value) {
+            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+            if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
+            return value.toLocaleString();
+        }
     }
-
-    function printReport() {
-        window.print();
-    }
+}
 </script>
 @endpush
-@endsection

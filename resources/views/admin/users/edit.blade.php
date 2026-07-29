@@ -1,185 +1,245 @@
-{{-- resources/views/admin/users/edit.blade.php --}}
-@extends('admin.layouts.admin')
+<!-- admin/users/edit.blade.php -->
+@extends('layout.app')
 
 @section('title', 'Edit User')
-
-@section('breadcrumb')
-    <li>
-        <div class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2 text-sm"></i>
-            <a href="{{ route('admin.users.index') }}" class="text-gray-500 hover:text-gray-700">Users</a>
-        </div>
-    </li>
-    <li>
-        <div class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2 text-sm"></i>
-            <span class="text-gray-700">{{ $user->name }}</span>
-        </div>
-    </li>
-@endsection
+@section('page-title', 'Edit User')
+@section('page-subtitle', 'Update user information and settings')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <div>
-                <h2 class="text-xl font-bold text-gray-900">Edit User</h2>
-                <p class="text-sm text-gray-500 mt-1">Update user information and permissions</p>
+<div x-data="userEditForm()" x-init="init()">
+    <form @submit.prevent="submitForm()" class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Form -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h4>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name *</label>
+                                <input type="text" x-model="form.name" required
+                                       class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address *</label>
+                                <input type="email" x-model="form.email" required
+                                       class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                                    <input type="password" x-model="form.password" placeholder="Leave blank to keep current"
+                                           class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave blank to keep current password</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
+                                    <input type="password" x-model="form.password_confirmation"
+                                           class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                                <input type="tel" x-model="form.phone"
+                                       class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Additional Information</h4>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bio</label>
+                                <textarea x-model="form.bio" rows="3"
+                                          class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                          placeholder="Brief description about the user..."></textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department</label>
+                                <select x-model="form.department"
+                                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">Select department...</option>
+                                    <option value="engineering">Engineering</option>
+                                    <option value="product">Product</option>
+                                    <option value="sales">Sales</option>
+                                    <option value="marketing">Marketing</option>
+                                    <option value="support">Support</option>
+                                    <option value="hr">HR</option>
+                                    <option value="finance">Finance</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="flex items-center space-x-2">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                    {{ $user->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                    <span class="w-1.5 h-1.5 rounded-full mr-1.5 {{ $user->is_active ? 'bg-green-500' : 'bg-gray-400' }}"></span>
-                    {{ $user->is_active ? 'Active' : 'Inactive' }}
-                </span>
-                <a href="{{ route('admin.users.show', $user) }}" class="text-gray-400 hover:text-blue-600 transition-colors">
-                    <i class="fas fa-eye"></i>
-                </a>
-            </div>
-        </div>
-        
-        <form action="{{ route('admin.users.update', $user) }}" method="POST" class="p-6" enctype="multipart/form-data">
-            @csrf
-            @method('PUT')
-            
+
+            <!-- Sidebar -->
             <div class="space-y-6">
-                <!-- Personal Information -->
-                <div>
-                    <h4 class="text-sm font-medium text-gray-900 mb-4">Personal Information</h4>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-                                Full Name <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" name="name" id="name" value="{{ old('name', $user->name) }}" required
-                                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('name') border-red-500 @enderror">
-                            @error('name')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        
-                        <div>
-                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-                                Email Address <span class="text-red-500">*</span>
-                            </label>
-                            <input type="email" name="email" id="email" value="{{ old('email', $user->email) }}" required
-                                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('email') border-red-500 @enderror">
-                            @error('email')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Change Password -->
-                <div>
-                    <h4 class="text-sm font-medium text-gray-900 mb-4">Change Password</h4>
-                    <p class="text-sm text-gray-500 mb-4">Leave blank to keep current password</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
-                                New Password
-                            </label>
-                            <input type="password" name="password" id="password"
-                                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('password') border-red-500 @enderror">
-                            @error('password')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        
-                        <div>
-                            <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">
-                                Confirm Password
-                            </label>
-                            <input type="password" name="password_confirmation" id="password_confirmation"
-                                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        </div>
-                    </div>
-                </div>
-                
                 <!-- Role & Status -->
-                <div>
-                    <h4 class="text-sm font-medium text-gray-900 mb-4">Role & Status</h4>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="role" class="block text-sm font-medium text-gray-700 mb-1">
-                                Role <span class="text-red-500">*</span>
-                            </label>
-                            <select name="role" id="role" required
-                                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('role') border-red-500 @enderror">
-                                <option value="">Select a role</option>
-                                @foreach($roles as $role)
-                                    <option value="{{ $role->id }}" {{ old('role', $user->roles->first()->id ?? '') == $role->id ? 'selected' : '' }}>
-                                        {{ $role->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('role')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Role & Status</h4>
                         
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <div class="flex items-center space-x-4 pt-2">
-                                <label class="flex items-center">
-                                    <input type="radio" name="is_active" value="1" {{ old('is_active', $user->is_active ? '1' : '0') == '1' ? 'checked' : '' }}
-                                           class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                                    <span class="ml-2 text-sm text-gray-700">Active</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="radio" name="is_active" value="0" {{ old('is_active', $user->is_active ? '1' : '0') == '0' ? 'checked' : '' }}
-                                           class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                                    <span class="ml-2 text-sm text-gray-700">Inactive</span>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role *</label>
+                                <select x-model="form.role" required
+                                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <option value="admin">Admin</option>
+                                    <option value="manager">Manager</option>
+                                    <option value="support">Support</option>
+                                    <option value="developer">Developer</option>
+                                    <option value="editor">Editor</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                                <select x-model="form.status"
+                                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <option value="active">Active</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="suspended">Suspended</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Avatar -->
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Profile Photo</h4>
+                        
+                        <div class="flex flex-col items-center">
+                            <div class="relative">
+                                <img id="avatarPreview" 
+                                     src="{{ $user->avatar ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=4f46e5&color=fff&size=128' }}" 
+                                     alt="Avatar Preview" 
+                                     class="w-24 h-24 rounded-full border-2 border-gray-300 dark:border-gray-700">
+                                <label for="avatar" 
+                                       class="absolute bottom-0 right-0 p-1.5 bg-indigo-600 hover:bg-indigo-700 rounded-full cursor-pointer transition-colors">
+                                    <i class="fas fa-camera text-white text-xs"></i>
+                                    <input type="file" id="avatar" x-model="form.avatar" accept="image/*" 
+                                           class="hidden" @change="previewAvatar($event)">
                                 </label>
                             </div>
-                            @error('is_active')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Upload a profile photo</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG up to 2MB</p>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Submit -->
-                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-                    <a href="{{ route('admin.users.index') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        Cancel
-                    </a>
-                    <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                        <i class="fas fa-save mr-2"></i> Update User
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
 
-    <!-- Danger Zone -->
-    <div class="mt-6 bg-white rounded-xl shadow-sm overflow-hidden border-2 border-red-200">
-        <div class="px-6 py-4 border-b border-red-200 bg-red-50">
-            <h3 class="text-sm font-bold text-red-700 flex items-center">
-                <i class="fas fa-exclamation-triangle mr-2"></i>
-                Danger Zone
-            </h3>
-        </div>
-        <div class="px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-900">Delete this user</p>
-                    <p class="text-xs text-gray-500">This action cannot be undone. All user data will be permanently removed.</p>
+                <!-- User Info -->
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4">User Information</h4>
+                        
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500 dark:text-gray-400">Joined</span>
+                                <span class="text-gray-900 dark:text-white">{{ $user->created_at->format('M d, Y') }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500 dark:text-gray-400">Last Login</span>
+                                <span class="text-gray-900 dark:text-white">{{ $user->last_login_at ? $user->last_login_at->format('M d, Y') : 'Never' }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500 dark:text-gray-400">User ID</span>
+                                <span class="text-gray-900 dark:text-white font-mono">#{{ $user->id }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <form action="{{ route('admin.users.destroy', $user) }}" method="POST" 
-                      onsubmit="return confirm('Are you sure you want to delete user: {{ $user->name }}? This action cannot be undone!')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                        <i class="fas fa-trash mr-2"></i> Delete User
-                    </button>
-                </form>
+
+                <!-- Actions -->
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <div class="space-y-2">
+                            <button type="submit" 
+                                    class="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-all">
+                                <i class="fas fa-save mr-1.5"></i>Update User
+                            </button>
+                            <a href="{{ route('admin.users.show', $user) }}" 
+                               class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                                <i class="fas fa-eye mr-1.5"></i>View Profile
+                            </a>
+                            <a href="{{ route('admin.users.index') }}" 
+                               class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                                <i class="fas fa-arrow-left mr-1.5"></i>Back to Users
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
-@endsection
+
+@push('scripts')
+<script>
+function userEditForm() {
+    return {
+        form: @json($user->toArray()),
+        avatarFile: null,
+        
+        previewAvatar(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.avatarFile = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('avatarPreview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        },
+        
+        submitForm() {
+            if (this.form.password && this.form.password !== this.form.password_confirmation) {
+                alert('Passwords do not match!');
+                return;
+            }
+            
+            const formData = new FormData();
+            Object.entries(this.form).forEach(([key, value]) => {
+                if (value !== null && value !== '') {
+                    formData.append(key, value);
+                }
+            });
+            formData.append('_method', 'PUT');
+            
+            if (this.avatarFile) {
+                formData.append('avatar', this.avatarFile);
+            }
+            
+            fetch(`{{ route('admin.users.update', $user) }}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = '{{ route('admin.users.show', $user) }}';
+                } else {
+                    alert(data.error || 'Error updating user');
+                }
+            })
+            .catch(error => console.error('Error updating user:', error));
+        }
+    }
+}
+</script>
+@endpush

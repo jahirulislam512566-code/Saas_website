@@ -1,0 +1,141 @@
+/* Templates Page Styles */
+
+/* Category Filter Animation */
+.filter-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-btn-active {
+    @apply bg-indigo-600 text-white shadow-lg shadow-indigo-200;
+}
+
+/* Template Card Hover */
+.template-card {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.template-card:hover {
+    transform: translateY(-8px);
+}
+
+/* Shimmer Effect */
+.shimmer {
+    position: relative;
+    overflow: hidden;
+}
+
+.shimmer::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent 40%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 60%
+    );
+    transform: rotate(45deg) translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.shimmer:hover::after {
+    transform: rotate(45deg) translateX(100%);
+}
+
+/* Modal Animation */
+.modal-enter {
+    animation: modalIn 0.3s ease-out;
+}
+
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Price Badge */
+.price-badge {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Grid/List View Transitions */
+.grid-view .template-card {
+    transition: all 0.3s ease;
+}
+
+.list-view .template-card {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+}
+
+.list-view .template-card .thumbnail {
+    width: 40%;
+    height: auto;
+}
+
+.list-view .template-card .content {
+    width: 60%;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .list-view .template-card {
+        flex-direction: column;
+    }
+    
+    .list-view .template-card .thumbnail,
+    .list-view .template-card .content {
+        width: 100%;
+    }
+}
+
+/* Loading Skeleton */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 25%,
+        #e0e0e0 50%,
+        #f0f0f0 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Scrollbar Styling for Modal */
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}

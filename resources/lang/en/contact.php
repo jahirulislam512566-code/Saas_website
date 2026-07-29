@@ -1,0 +1,51 @@
+<?php
+
+return [
+    'title' => 'Contact Us - AgencyPro',
+    'description' => 'Get in touch with AgencyPro. We\'d love to hear about your project.',
+    'page_header' => [
+        'title' => 'Get In Touch',
+        'subtitle' => 'Contact Us',
+    ],
+    'form' => [
+        'title' => 'Let\'s Talk About Your Project',
+        'subtitle' => 'Get In Touch',
+        'description' => 'Have a project in mind? We\'d love to hear from you. Fill out the form below and we\'ll get back to you within 24 hours.',
+        'name' => 'Full Name',
+        'email' => 'Email Address',
+        'phone' => 'Phone Number',
+        'subject' => 'Subject',
+        'message' => 'Message',
+        'button' => 'Send Message →',
+        'success' => 'Thank you for your message. We will get back to you soon!',
+    ],
+    'info' => [
+        'email' => 'Email Us',
+        'email_value' => 'hello@agencypro.com',
+        'address' => 'Visit Us',
+        'address_value' => '123 Innovation Drive, San Francisco, CA 94105',
+        'phone' => 'Call Us',
+        'phone_value' => '+1 (555) 123-4567',
+        'hours' => 'Working Hours',
+        'hours_value' => 'Mon - Fri: 9:00 AM - 6:00 PM PST',
+    ],
+    'quote' => [
+        'title' => 'Request a Quote',
+        'subtitle' => 'Get a Customized Solution',
+        'description' => 'Tell us about your needs and we\'ll provide a tailored solution.',
+        'project_type' => 'Project Type',
+        'budget' => 'Budget Range',
+        'timeline' => 'Project Timeline',
+        'button' => 'Submit Quote Request',
+    ],
+    'success' => [
+        'title' => 'Thank You!',
+        'message' => 'We\'ve received your message and we\'ll get back to you within 24 hours.',
+        'next_steps' => 'What Happens Next?',
+        'step1' => 'We\'ll review your inquiry within 2-4 hours',
+        'step2' => 'We\'ll schedule a call to discuss your project',
+        'step3' => 'We\'ll provide a detailed proposal and quote',
+        'return_home' => 'Return to Home',
+        'view_work' => 'View Our Work',
+    ],
+];

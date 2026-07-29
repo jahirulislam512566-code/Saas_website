@@ -1,183 +1,242 @@
 <?php
 
+use App\Http\Controllers\{ 
+    HomeController, 
+    AboutController, 
+    ServicesController, 
+    PortfolioController, 
+    PricingController, 
+    BlogController, 
+    ResourcesController, 
+    CareersController, 
+    ContactController, 
+    SitemapController, 
+    SearchController 
+};
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Website\HomeController;
-use App\Http\Controllers\Website\LandingController;
-use App\Http\Controllers\Website\PageController;
-use App\Http\Controllers\Website\ContactController;
-use App\Http\Controllers\Website\PricingController;
-use App\Http\Controllers\Website\FeaturesController;
-use App\Http\Controllers\Website\TemplatesController;
-use App\Http\Controllers\Website\AboutController;
-use App\Http\Controllers\Website\BlogController;
-use App\Http\Controllers\Website\PortfolioController;
-use App\Http\Controllers\Website\ServiceController;
-use App\Http\Controllers\Website\SearchController;
 use App\Http\Controllers\Website\NewsletterController;
-use App\Http\Controllers\Website\AccountController;
-use App\Http\Controllers\Website\SubscriptionController;
-use App\Http\Controllers\Website\CheckoutController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LanguageController;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application.
-| These routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group.
-|
 */
 
-// ==================== MAIN ROUTES ====================
 
-// Home page - using controller
+Route::get('/language/switch/{locale}', [LanguageController::class, 'switch'])
+    ->name('language.switch');
+
+// ============================================
+// HOME
+// ============================================
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// ==================== LANDING PAGES ====================
-
-Route::prefix('landing')->name('landing.')->group(function () {
-    Route::get('/', [LandingController::class, 'index'])->name('home');
-    Route::get('/pricing', [LandingController::class, 'pricing'])->name('pricing');
-    Route::get('/features', [LandingController::class, 'features'])->name('features');
-    Route::get('/templates', [LandingController::class, 'templates'])->name('templates');
-    Route::get('/about', [LandingController::class, 'about'])->name('about');
-    Route::get('/contact', [LandingController::class, 'contact'])->name('contact');
-    Route::post('/contact', [LandingController::class, 'storeContact'])->name('contact.store');
-    Route::get('/faq', [LandingController::class, 'faq'])->name('faq');
-    Route::get('/testimonials', [LandingController::class, 'testimonials'])->name('testimonials');
-});
-
-// ==================== WEBSITE ROUTES ====================
-
-Route::prefix('website')->name('website.')->group(function () {
-    // Static Pages - FIXED: These were missing in your original file
+// ============================================
+// PAGES ROUTES (Using 'pages.' prefix)
+// ============================================
+Route::prefix('pages')->name('pages.')->group(function () {
+    // About Pages
     Route::get('/about', [AboutController::class, 'index'])->name('about');
-    Route::get('/contact', [ContactController::class, 'index'])->name('contact');
-    Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+    Route::get('/about/mission', [AboutController::class, 'mission'])->name('about.mission');
+    Route::get('/about/vision', [AboutController::class, 'vision'])->name('about.vision');
+    Route::get('/about/history', [AboutController::class, 'history'])->name('about.history');
+    Route::get('/about/team', [AboutController::class, 'team'])->name('about.team');
+    Route::get('/about/values', [AboutController::class, 'values'])->name('about.values');
     
-    // Authentication Routes - ADD THIS SECTION
-    // These are needed for the login/register links in your header
-    Route::get('/login', function () {
-        return view('auth.login');
-    })->name('login');
+    // Resources Pages
+    Route::get('/faq', [ResourcesController::class, 'faq'])->name('faq');
+    Route::get('/documentation', [ResourcesController::class, 'documentation'])->name('documentation');
+    Route::get('/case-studies', [ResourcesController::class, 'caseStudies'])->name('case-studies');
+    Route::get('/downloads', [ResourcesController::class, 'downloads'])->name('downloads');
     
-    Route::get('/register', function () {
-        return view('auth.register');
-    })->name('register');
+    // Careers
+    Route::get('/careers', [CareersController::class, 'index'])->name('careers');
+    Route::get('/careers/openings', [CareersController::class, 'openings'])->name('careers.openings');
     
-    // Services
-    Route::get('/services', [ServiceController::class, 'index'])->name('services');
-    Route::get('/services/{slug}', [ServiceController::class, 'show'])->name('services.show');
+    // Legal Pages
+    Route::get('/privacy-policy', function () {
+        return view('frontend.pages.privacy');
+    })->name('privacy');
     
-    // Blog
-    Route::get('/blog', [BlogController::class, 'index'])->name('blog');
-    Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
-    Route::get('/blog/category/{slug}', [BlogController::class, 'category'])->name('blog.category');
-    Route::get('/blog/tag/{slug}', [BlogController::class, 'tag'])->name('blog.tag');
-    Route::get('/blog/author/{id}', [BlogController::class, 'author'])->name('blog.author');
-    Route::post('/blog/{post}/comment', [BlogController::class, 'storeComment'])->name('blog.comment.store');
+    Route::get('/terms-of-service', function () {
+        return view('frontend.pages.terms');
+    })->name('terms');
     
-    // Portfolio
-    Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio');
-    Route::get('/portfolio/{slug}', [PortfolioController::class, 'show'])->name('portfolio.show');
-    Route::get('/portfolio/category/{slug}', [PortfolioController::class, 'category'])->name('portfolio.category');
+    Route::get('/refund-policy', function () {
+        return view('frontend.pages.refund');
+    })->name('refund');
     
-    // Pricing
-    Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
-    Route::post('/pricing/subscribe', [PricingController::class, 'subscribe'])->name('pricing.subscribe');
-    
-    // Features
-    Route::get('/features', [FeaturesController::class, 'index'])->name('features');
-    Route::get('/features/{slug}', [FeaturesController::class, 'show'])->name('features.show');
-    
-    // Templates
-    Route::get('/templates', [TemplatesController::class, 'index'])->name('templates');
-    Route::get('/templates/{slug}', [TemplatesController::class, 'show'])->name('templates.show');
-    Route::post('/templates/preview', [TemplatesController::class, 'preview'])->name('templates.preview');
-    
-    // Search
-    Route::get('/search', [SearchController::class, 'index'])->name('search');
-    Route::get('/search/autocomplete', [SearchController::class, 'autocomplete'])->name('search.autocomplete');
-    
-    // Newsletter
-    Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
-    Route::get('/newsletter/unsubscribe/{email}', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
-    Route::get('/newsletter/confirm/{token}', [NewsletterController::class, 'confirm'])->name('newsletter.confirm');
-    
-    // Account Routes - FIXED: Moved to proper auth middleware
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/account', [AccountController::class, 'index'])->name('account.dashboard');
-        Route::get('/account/profile', [AccountController::class, 'profile'])->name('account.profile');
-        Route::put('/account/profile', [AccountController::class, 'updateProfile'])->name('account.profile.update');
-        Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
-        Route::get('/account/subscriptions', [AccountController::class, 'subscriptions'])->name('account.subscriptions');
-        Route::get('/account/invoices', [AccountController::class, 'invoices'])->name('account.invoices');
-        Route::get('/account/settings', [AccountController::class, 'settings'])->name('account.settings');
-        Route::put('/account/settings', [AccountController::class, 'updateSettings'])->name('account.settings.update');
-    });
-    
-    // Dynamic Pages (must be last)
-    Route::get('/page/{slug}', [PageController::class, 'show'])->name('page');
+    Route::get('/cookie-policy', function () {
+        return view('frontend.pages.cookie');
+    })->name('cookie');
     
     // Sitemap
-    Route::get('/sitemap.xml', function () {
-        return response()->view('website.sitemap')->header('Content-Type', 'application/xml');
-    })->name('sitemap');
-    
-    // Robots.txt
-    Route::get('/robots.txt', function () {
-        return response()->view('website.robots')->header('Content-Type', 'text/plain');
-    })->name('robots');
+    Route::get('/sitemap', [SitemapController::class, 'index'])->name('sitemap');
 });
 
-// ==================== DASHBOARD ROUTES ====================
+// ============================================
+// ABOUT ROUTES (Alternative 'about.' prefix)
+// ============================================
+Route::prefix('about')->name('about.')->group(function () {
+    Route::get('/', [AboutController::class, 'index'])->name('index');
+    Route::get('/mission', [AboutController::class, 'mission'])->name('mission');
+    Route::get('/vision', [AboutController::class, 'vision'])->name('vision');
+    Route::get('/history', [AboutController::class, 'history'])->name('history');
+    Route::get('/team', [AboutController::class, 'team'])->name('team');
+    Route::get('/values', [AboutController::class, 'values'])->name('values');
+});
 
+// ============================================
+// SERVICES ROUTES
+// ============================================
+Route::prefix('services')->name('services.')->group(function () {
+    Route::get('/', [ServicesController::class, 'index'])->name('index');
+    Route::get('/website-design', [ServicesController::class, 'webDesign'])->name('web-design');
+    Route::get('/web-development', [ServicesController::class, 'webDevelopment'])->name('web-development');
+    Route::get('/ecommerce', [ServicesController::class, 'ecommerce'])->name('ecommerce');
+    Route::get('/seo', [ServicesController::class, 'seo'])->name('seo');
+    Route::get('/uiux-design', [ServicesController::class, 'uiuxDesign'])->name('uiux-design');
+    Route::get('/maintenance', [ServicesController::class, 'maintenance'])->name('maintenance');
+    Route::get('/hosting', [ServicesController::class, 'hosting'])->name('hosting');
+    Route::get('/{slug}', [ServicesController::class, 'show'])->name('show');
+});
+
+// ============================================
+// PORTFOLIO ROUTES
+// ============================================
+Route::prefix('portfolio')->name('portfolio.')->group(function () {
+    Route::get('/', [PortfolioController::class, 'index'])->name('index');
+    Route::get('/category/{category}', [PortfolioController::class, 'category'])->name('category');
+    Route::get('/{slug}', [PortfolioController::class, 'show'])->name('show');
+});
+
+// ============================================
+// PRICING ROUTES
+// ============================================
+Route::prefix('pricing')->name('pricing.')->group(function () {
+    Route::get('/', [PricingController::class, 'index'])->name('index');
+    Route::get('/compare', [PricingController::class, 'compare'])->name('compare');
+    Route::get('/calculator', [PricingController::class, 'calculator'])->name('calculator');
+});
+
+// ============================================
+// BLOG ROUTES
+// ============================================
+Route::prefix('blog')->name('blog.')->group(function () {
+    Route::get('/', [BlogController::class, 'index'])->name('index');
+    Route::get('/search', [BlogController::class, 'search'])->name('search');
+    Route::get('/category/{category}', [BlogController::class, 'category'])->name('category');
+    Route::get('/tag/{tag}', [BlogController::class, 'tag'])->name('tag');
+    Route::get('/author/{author}', [BlogController::class, 'author'])->name('author');
+    Route::get('/{slug}', [BlogController::class, 'show'])->name('show');
+});
+
+// ============================================
+// RESOURCES ROUTES (Alternative 'resources.' prefix)
+// ============================================
+Route::prefix('resources')->name('resources.')->group(function () {
+    Route::get('/faq', [ResourcesController::class, 'faq'])->name('faq');
+    Route::get('/documentation', [ResourcesController::class, 'documentation'])->name('documentation');
+    Route::get('/case-studies', [ResourcesController::class, 'caseStudies'])->name('case-studies');
+    Route::get('/downloads', [ResourcesController::class, 'downloads'])->name('downloads');
+});
+
+// ============================================
+// CAREERS ROUTES (Alternative 'careers.' prefix)
+// ============================================
+Route::prefix('careers')->name('careers.')->group(function () {
+    Route::get('/', [CareersController::class, 'index'])->name('index');
+    Route::get('/openings', [CareersController::class, 'openings'])->name('openings');
+});
+
+// ============================================
+// CONTACT ROUTES
+// ============================================
+Route::prefix('contact')->name('contact.')->group(function () {
+    Route::get('/', [ContactController::class, 'index'])->name('index');
+    Route::get('/quote', [ContactController::class, 'quote'])->name('quote');
+    Route::get('/book-meeting', [ContactController::class, 'bookMeeting'])->name('book-meeting');
+    Route::post('/submit', [ContactController::class, 'submit'])->name('submit');
+    Route::post('/quote/submit', [ContactController::class, 'submitQuote'])->name('quote.submit');
+    Route::post('/book-meeting/submit', [ContactController::class, 'submitMeeting'])->name('book-meeting.submit');
+    Route::get('/success', [ContactController::class, 'success'])->name('success');
+});
+
+// ============================================
+// NEWSLETTER ROUTES
+// ============================================
+Route::prefix('api')->name('api.')->group(function () {
+    Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
+        ->name('newsletter.subscribe');
+    Route::post('/newsletter/unsubscribe', [NewsletterController::class, 'unsubscribe'])
+        ->name('newsletter.unsubscribe');
+        
+});
+
+// ============================================
+// LEGAL ROUTES (Alternative 'legal.' prefix)
+// ============================================
+Route::prefix('legal')->name('legal.')->group(function () {
+    Route::get('/privacy', function () {
+        return view('frontend.pages.privacy');
+    })->name('privacy');
+    
+    Route::get('/terms', function () {
+        return view('frontend.pages.terms');
+    })->name('terms');
+    
+    Route::get('/refund', function () {
+        return view('frontend.pages.refund');
+    })->name('refund');
+    
+    Route::get('/cookie', function () {
+        return view('frontend.pages.cookie');
+    })->name('cookie');
+});
+
+// ============================================
+// SITEMAP
+// ============================================
+Route::get('/sitemap', [SitemapController::class, 'index'])->name('sitemap');
+Route::get('/sitemap.xml', [SitemapController::class, 'xml'])->name('sitemap.xml');
+Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+
+// ============================================
+// SEARCH
+// ============================================
+// Search Routes
+Route::get('/search', [SearchController::class, 'index'])->name('search');
+Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->name('search.suggestions');
+Route::get('/search/advanced', [SearchController::class, 'advanced'])->name('search.advanced');
+Route::get('/search/stats', [SearchController::class, 'stats'])->name('search.stats');
+
+// ============================================
+// AUTH ROUTES (Laravel Breeze/Jetstream)
+// ============================================
 Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-// ==================== USER PROFILE ROUTES ====================
+    return view('admin.dashboard.index');
+})->middleware(['auth'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
-    // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// ==================== SUBSCRIPTION ROUTES ====================
-
-Route::prefix('subscription')->name('subscription.')->middleware(['auth'])->group(function () {
-    Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
-    Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])->name('subscribe');
-    Route::post('/cancel', [SubscriptionController::class, 'cancel'])->name('cancel');
-    Route::post('/resume', [SubscriptionController::class, 'resume'])->name('resume');
-    Route::get('/invoice/{id}', [SubscriptionController::class, 'invoice'])->name('invoice');
-    Route::get('/payment-methods', [SubscriptionController::class, 'paymentMethods'])->name('payment.methods');
-    Route::post('/payment-methods', [SubscriptionController::class, 'addPaymentMethod'])->name('payment.methods.add');
-    Route::delete('/payment-methods/{id}', [SubscriptionController::class, 'removePaymentMethod'])->name('payment.methods.remove');
+// routes/web.php - For testing only
+Route::get('/test-404', function () {
+    abort(404);
 });
 
-// ==================== CHECKOUT ROUTES ====================
-
-Route::prefix('checkout')->name('checkout.')->group(function () {
-    Route::get('/{plan}', [CheckoutController::class, 'index'])->name('index');
-    Route::post('/process', [CheckoutController::class, 'process'])->name('process');
-    Route::get('/success', [CheckoutController::class, 'success'])->name('success');
-    Route::get('/cancel', [CheckoutController::class, 'cancel'])->name('cancel');
-    Route::post('/webhook', [CheckoutController::class, 'webhook'])->name('webhook');
+Route::get('/test-403', function () {
+    abort(403);
 });
 
-// ==================== FALLBACK ROUTE ====================
-// Catch-all route for 404 pages (must be last)
-Route::fallback(function () {
-    return view('errors.404');
+Route::get('/test-500', function () {
+    abort(500);
 });
 
-// ==================== INCLUDE AUTH ROUTES ====================
 require __DIR__.'/auth.php';
-
-// ==================== INCLUDE ADMIN ROUTES ====================
 require __DIR__.'/admin.php';

@@ -1,241 +1,311 @@
-{{-- resources/views/admin/websites/index.blade.php --}}
-@extends('admin.layouts.admin')
+<!-- admin/websites/index.blade.php -->
+@extends('layout.app')
 
-@section('title', 'Websites Management')
-
-@section('breadcrumb')
-    <li>
-        <div class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2 text-sm"></i>
-            <span class="text-gray-500">Websites</span>
-        </div>
-    </li>
-@endsection
+@section('title', 'Websites')
+@section('page-title', 'Websites Management')
+@section('page-subtitle', 'Manage all customer websites and their status')
 
 @section('content')
-<div class="space-y-6">
-    <!-- ===== HEADER ===== -->
-    <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Websites</h1>
-            <p class="text-sm text-gray-500 mt-1">Manage all websites created by your users</p>
+<div x-data="websiteManager()" x-init="init()">
+    <!-- Website Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="formatNumber(stats.total)">0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/20 flex items-center justify-center">
+                    <i class="fas fa-globe text-indigo-600 dark:text-indigo-400"></i>
+                </div>
+            </div>
         </div>
-        <div class="flex items-center space-x-3">
-            <a href="{{ route('admin.websites.export') }}" 
-               class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                <i class="fas fa-download mr-2"></i> Export
-            </a>
+
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Published</p>
+                    <p class="text-2xl font-bold text-green-600" x-text="formatNumber(stats.published)">0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                    <i class="fas fa-check-circle text-green-600 dark:text-green-400"></i>
+                </div>
+            </div>
+            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <span x-text="stats.published_percent + '%'"></span> of total
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Draft</p>
+                    <p class="text-2xl font-bold text-yellow-600" x-text="formatNumber(stats.draft)">0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
+                    <i class="fas fa-pencil-alt text-yellow-600 dark:text-yellow-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Archived</p>
+                    <p class="text-2xl font-bold text-gray-600" x-text="formatNumber(stats.archived)">0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    <i class="fas fa-archive text-gray-600 dark:text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Suspended</p>
+                    <p class="text-2xl font-bold text-red-600" x-text="formatNumber(stats.suspended)">0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                    <i class="fas fa-ban text-red-600 dark:text-red-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Views</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="formatNumber(stats.views)">0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                    <i class="fas fa-eye text-purple-600 dark:text-purple-400"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Actions -->
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm mb-6">
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</label>
+                <select x-model="filters.status" @change="applyFilters()"
+                        class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                    <option value="all">All Status</option>
+                    <option value="published">Published</option>
+                    <option value="draft">Draft</option>
+                    <option value="archived">Archived</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="deleted">Deleted</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Customer:</label>
+                <select x-model="filters.customer" @change="applyFilters()"
+                        class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                    <option value="all">All Customers</option>
+                    @foreach($customers as $customer)
+                        <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="flex-1 min-w-[200px]">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input type="text" x-model="filters.search" 
+                           placeholder="Search websites..." 
+                           class="w-full pl-9 pr-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <button @click="applyFilters()" 
+                    class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all">
+                <i class="fas fa-filter mr-1.5"></i>Apply
+            </button>
+            <button @click="resetFilters()" 
+                    class="px-4 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                <i class="fas fa-undo mr-1.5"></i>Reset
+            </button>
+            
             <a href="{{ route('admin.websites.create') }}" 
-               class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                <i class="fas fa-plus mr-2"></i> Add Website
+               class="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all ml-auto">
+                <i class="fas fa-plus mr-1.5"></i>New Website
             </a>
         </div>
     </div>
 
-    <!-- ===== STATS CARDS ===== -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500">Total Websites</p>
-                    <p class="text-xl font-bold text-gray-900">{{ $stats['total'] ?? 0 }}</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center">
-                    <i class="fas fa-globe"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500">Published</p>
-                    <p class="text-xl font-bold text-green-600">{{ $stats['published'] ?? 0 }}</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500">Draft</p>
-                    <p class="text-xl font-bold text-yellow-600">{{ $stats['draft'] ?? 0 }}</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center">
-                    <i class="fas fa-pen"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500">Total Views</p>
-                    <p class="text-xl font-bold text-blue-600">{{ $stats['total_views'] ?? 0 }}</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                    <i class="fas fa-eye"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== FILTERS ===== -->
-    <div class="bg-white rounded-xl shadow-sm p-4">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                <input type="text" name="search" placeholder="Search websites..." value="{{ request('search') }}" 
-                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select name="status" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                    <option value="">All Status</option>
-                    <option value="published" {{ request('status') == 'published' ? 'selected' : '' }}>Published</option>
-                    <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Draft</option>
-                    <option value="archived" {{ request('status') == 'archived' ? 'selected' : '' }}>Archived</option>
-                </select>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-                <select name="sort" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                    <option value="created_at" {{ request('sort') == 'created_at' ? 'selected' : '' }}>Date Created</option>
-                    <option value="name" {{ request('sort') == 'name' ? 'selected' : '' }}>Name</option>
-                    <option value="views" {{ request('sort') == 'views' ? 'selected' : '' }}>Views</option>
-                </select>
-            </div>
-            
-            <div class="flex items-end space-x-2">
-                <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                    <i class="fas fa-search mr-2"></i> Filter
-                </button>
-                <a href="{{ route('admin.websites.index') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                    <i class="fas fa-times mr-2"></i> Clear
-                </a>
-            </div>
-        </form>
-    </div>
-
-    <!-- ===== WEBSITES GRID ===== -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @forelse($websites as $website)
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group">
-                <!-- Website Preview -->
-                <div class="relative h-48 bg-gray-100 overflow-hidden">
+    <!-- Websites Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @foreach($websites as $website)
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-all group">
+                <!-- Thumbnail -->
+                <div class="relative h-48 bg-gray-100 dark:bg-gray-800 rounded-t-xl overflow-hidden">
                     @if($website->screenshot)
-                        <img src="{{ Storage::disk('public')->url($website->screenshot) }}" 
-                             alt="{{ $website->name }}" 
-                             class="w-full h-full object-cover">
+                        <img src="{{ $website->screenshot }}" alt="{{ $website->name }}" class="w-full h-full object-cover">
                     @else
-                        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-                            <div class="text-center">
-                                <i class="fas fa-globe text-4xl text-primary-400"></i>
-                                <p class="mt-2 text-sm text-gray-500">No preview available</p>
-                            </div>
+                        <div class="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
+                            <i class="fas fa-globe text-4xl"></i>
                         </div>
                     @endif
-                    <div class="absolute top-3 right-3 flex items-center space-x-2">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                            {{ $website->status == 'published' ? 'bg-green-100 text-green-800' : 
-                               ($website->status == 'draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">
+                    <div class="absolute top-3 right-3 flex items-center gap-1">
+                        <span class="px-2 py-1 text-xs font-medium rounded-full
+                                     {{ $website->status === 'published' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 
+                                        ($website->status === 'draft' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                        ($website->status === 'archived' ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' :
+                                        ($website->status === 'suspended' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'))) }}">
                             {{ ucfirst($website->status) }}
                         </span>
                     </div>
-                </div>
-                
-                <!-- Website Info -->
-                <div class="p-4">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1 min-w-0">
-                            <h3 class="text-lg font-semibold text-gray-900 truncate">{{ $website->name }}</h3>
-                            <p class="text-sm text-gray-500 truncate">{{ $website->domain ?? 'No domain' }}</p>
-                        </div>
-                        <div class="flex items-center space-x-1 ml-2">
-                            <span class="text-sm text-gray-400">
-                                <i class="fas fa-eye mr-1"></i>{{ $website->views ?? 0 }}
+                    @if($website->is_featured)
+                        <div class="absolute top-3 left-3">
+                            <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">
+                                <i class="fas fa-star mr-1"></i>Featured
                             </span>
                         </div>
-                    </div>
-                    
-                    <div class="mt-3 flex items-center justify-between">
-                        <div class="flex items-center space-x-2 text-xs text-gray-500">
-                            <span>{{ $website->user->name ?? 'Unknown' }}</span>
-                            <span>•</span>
-                            <span>{{ $website->created_at->diffForHumans() }}</span>
-                        </div>
-                        <div class="flex items-center space-x-1">
-                            @if($website->status == 'published')
-                                <a href="{{ route('website.preview', $website) }}" target="_blank" 
-                                   class="p-1.5 text-gray-400 hover:text-green-600 transition-colors rounded-lg hover:bg-green-50" 
-                                   title="Preview">
-                                    <i class="fas fa-external-link-alt text-sm"></i>
-                                </a>
-                            @endif
+                    @endif
+                </div>
+
+                <!-- Content -->
+                <div class="p-4">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
                             <a href="{{ route('admin.websites.show', $website) }}" 
-                               class="p-1.5 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50" 
-                               title="View">
-                                <i class="fas fa-eye text-sm"></i>
+                               class="font-semibold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                {{ $website->name }}
                             </a>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ $website->domain }}</p>
+                        </div>
+                        <div class="flex items-center gap-1 ml-2">
                             <a href="{{ route('admin.websites.edit', $website) }}" 
-                               class="p-1.5 text-gray-400 hover:text-primary-600 transition-colors rounded-lg hover:bg-primary-50" 
-                               title="Edit">
-                                <i class="fas fa-pen text-sm"></i>
+                               class="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                <i class="fas fa-edit text-xs"></i>
                             </a>
                             <a href="{{ route('admin.websites.analytics', $website) }}" 
-                               class="p-1.5 text-gray-400 hover:text-purple-600 transition-colors rounded-lg hover:bg-purple-50" 
-                               title="Analytics">
-                                <i class="fas fa-chart-line text-sm"></i>
+                               class="p-1.5 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                <i class="fas fa-chart-line text-xs"></i>
                             </a>
+                            <button @click="deleteWebsite({{ $website->id }})" 
+                                    class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Meta -->
+                    <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span class="flex items-center gap-1">
+                            <i class="fas fa-user"></i>
+                            {{ $website->customer->name ?? 'Unknown' }}
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <i class="fas fa-calendar-alt"></i>
+                            {{ $website->created_at->format('M d, Y') }}
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <i class="fas fa-eye"></i>
+                            {{ number_format($website->views ?? 0) }}
+                        </span>
+                    </div>
+
+                    <!-- Progress / Actions -->
+                    <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1 mr-2">
+                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                                    <div class="h-1.5 rounded-full bg-indigo-500" 
+                                         style="width: {{ $website->completion_percentage ?? 0 }}%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $website->completion_percentage ?? 0 }}% complete
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                @if($website->status === 'published')
+                                    <a href="https://{{ $website->domain }}" target="_blank" 
+                                       class="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors">
+                                        <i class="fas fa-external-link-alt text-xs"></i>
+                                    </a>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        @empty
-            <div class="col-span-full">
-                <div class="text-center py-12 bg-white rounded-xl shadow-sm">
-                    <i class="fas fa-globe text-4xl text-gray-300 mb-3 block"></i>
-                    <p class="text-lg font-medium text-gray-900">No websites found</p>
-                    <p class="text-sm text-gray-500 mt-1">Get started by creating your first website</p>
-                    <a href="{{ route('admin.websites.create') }}" class="inline-flex items-center mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                        <i class="fas fa-plus mr-2"></i> Create Website
-                    </a>
-                </div>
-            </div>
-        @endforelse
+        @endforeach
     </div>
-    
-    <!-- ===== PAGINATION ===== -->
-    <div class="flex items-center justify-between">
-        @if($websites instanceof \Illuminate\Pagination\LengthAwarePaginator)
-            <div class="text-sm text-gray-500">
-                Showing {{ $websites->firstItem() ?? 0 }} to {{ $websites->lastItem() ?? 0 }} of {{ $websites->total() }} results
+
+    <!-- Empty State -->
+    @if($websites->isEmpty())
+        <div class="text-center py-12">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-globe text-4xl text-gray-300 dark:text-gray-700 mb-3"></i>
+                <h4 class="text-lg font-semibold text-gray-900 dark:text-white">No websites found</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Get started by creating your first website</p>
+                <a href="{{ route('admin.websites.create') }}" 
+                   class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all">
+                    <i class="fas fa-plus mr-1.5"></i>Create Website
+                </a>
             </div>
-            <div>
-                {{ $websites->appends(request()->query())->links() }}
-            </div>
-        @else
-            <div class="text-sm text-gray-500">
-                Showing {{ $websites->count() }} results
-            </div>
-        @endif
+        </div>
+    @endif
+
+    <!-- Pagination -->
+    <div class="mt-6">
+        {{ $websites->links() }}
     </div>
 </div>
 
-@push('styles')
-<style>
-    .card-hover {
-        transition: all 0.2s ease;
+@push('scripts')
+<script>
+function websiteManager() {
+    return {
+        stats: @json($stats),
+        filters: {
+            status: 'all',
+            customer: 'all',
+            search: ''
+        },
+        
+        applyFilters() {
+            const params = new URLSearchParams(this.filters);
+            window.location.href = `{{ route('admin.websites.index') }}?${params.toString()}`;
+        },
+        
+        resetFilters() {
+            this.filters = {
+                status: 'all',
+                customer: 'all',
+                search: ''
+            };
+            this.applyFilters();
+        },
+        
+        deleteWebsite(id) {
+            if (confirm('Are you sure you want to delete this website?')) {
+                fetch(`{{ route('admin.websites.destroy', '') }}/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                })
+                .catch(error => console.error('Error deleting website:', error));
+            }
+        },
+        
+        formatNumber(value) {
+            return value.toLocaleString();
+        }
     }
-    .card-hover:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-    }
-</style>
+}
+</script>
 @endpush
-@endsection

@@ -35,7 +35,7 @@
                         <x-website.btn-primary href="{{ route('website.contact') }}">
                             Get Started
                         </x-website.btn-primary>
-                        <x-website.btn-secondary href="#">
+                        <x-website.btn-secondary href=""{{route('website.terms')}}>
                             Learn More
                         </x-website.btn-secondary>
                     </div>

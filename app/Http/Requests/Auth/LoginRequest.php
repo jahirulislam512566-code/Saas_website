@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Auth\Events\Lockout;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -22,8 +21,6 @@ class LoginRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -36,44 +33,27 @@ class LoginRequest extends FormRequest
     /**
      * Attempt to authenticate the request's credentials.
      *
-     * @throws ValidationException
+     * @throws \Illuminate\Validation\ValidationException
      */
-  public function authenticate(): void
-{
-    $this->ensureIsNotRateLimited();
+    public function authenticate(): void
+    {
+        $this->ensureIsNotRateLimited();
 
-    // Bypass ALL global scopes to find the user (including tenant scope)
-    $user = \App\Models\User::withoutGlobalScopes()
-        ->where('email', $this->email)
-        ->first();
-
-    if ($user && \Hash::check($this->password, $user->password)) {
-        // Check if user is active
-        if (!$user->is_active) {
+        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
+
             throw ValidationException::withMessages([
-                'email' => 'Your account is inactive. Please contact support.',
+                'email' => trans('auth.failed'),
             ]);
         }
-        
-        // Log the user in
-        \Auth::login($user, $this->boolean('remember'));
+
         RateLimiter::clear($this->throttleKey());
-        return;
     }
-
-    // Authentication failed
-    RateLimiter::hit($this->throttleKey());
-
-    throw ValidationException::withMessages([
-        'email' => trans('auth.failed'),
-    ]);
-}
 
     /**
      * Ensure the login request is not rate limited.
      *
-     * @throws ValidationException
+     * @throws \Illuminate\Validation\ValidationException
      */
     public function ensureIsNotRateLimited(): void
     {
@@ -98,6 +78,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->string('email')) . '|' . $this->ip());
     }
 }

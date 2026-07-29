@@ -28,6 +28,8 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             PortfolioCategorySeeder::class,
             PortfolioTagSeeder::class,
+            AdminSeeder::class,
+            TemplateSeeder::class,
             // Add other seeders as needed
         ]);
 

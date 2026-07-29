@@ -2,83 +2,84 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Template extends Model
 {
-    use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = [
         'name',
         'slug',
-        'description',
-        'preview_image',
-        'thumbnail',
-        'config',
-        'default_data',
         'category',
-        'version',
-        'is_free',
+        'category_slug',
+        'description',
+        'image_url',
+        'demo_url',
         'price',
-        'downloads',
+        'pages',
+        'features',
+        'colors',
         'rating',
+        'reviews',
+        'usage_count',
+        'popular',
         'is_active',
+        'is_free',
+        'default_settings',
+        'sections',
+        'pages_data',
     ];
 
     protected $casts = [
-        'config' => 'array',
-        'default_data' => 'array',
-        'is_free' => 'boolean',
+        'features' => 'array',
+        'colors' => 'array',
+        'default_settings' => 'array',
+        'sections' => 'array',
+        'pages_data' => 'array',
         'price' => 'decimal:2',
-        'downloads' => 'integer',
-        'rating' => 'integer',
+        'rating' => 'decimal:2',
+        'usage_count' => 'integer',
+        'popular' => 'boolean',
         'is_active' => 'boolean',
+        'is_free' => 'boolean',
     ];
 
-    // Relationships
-    public function pages()
+    protected $appends = ['is_new', 'formatted_price'];
+
+    public function getIsNewAttribute()
     {
-        return $this->hasMany(Page::class);
+        return $this->created_at->diffInDays(now()) < 30;
     }
 
-    // Scopes
-    public function scopeActive($query)
+    public function getFormattedPriceAttribute()
     {
-        return $query->where('is_active', true);
+        return $this->price == 0 ? 'Free' : '$' . number_format($this->price, 2);
+    }
+
+    public function websites()
+    {
+        return $this->hasMany(Website::class);
+    }
+
+    public function scopePopular($query)
+    {
+        return $query->where('popular', true)->orderBy('usage_count', 'desc');
     }
 
     public function scopeFree($query)
     {
-        return $query->where('is_free', true);
+        return $query->where('price', 0);
     }
 
     public function scopePremium($query)
     {
-        return $query->where('is_free', false);
+        return $query->where('price', '>', 0);
     }
 
     public function scopeByCategory($query, $category)
     {
-        return $query->where('category', $category);
-    }
-
-    // Accessors
-    public function getPreviewImageUrlAttribute()
-    {
-        return $this->preview_image ? asset('storage/' . $this->preview_image) : null;
-    }
-
-    public function getThumbnailUrlAttribute()
-    {
-        return $this->thumbnail ? asset('storage/' . $this->thumbnail) : null;
-    }
-
-    public function getPriceFormattedAttribute()
-    {
-        if ($this->is_free) {
-            return 'Free';
-        }
-        return '$' . number_format($this->price, 2);
+        return $query->where('category_slug', $category);
     }
 }

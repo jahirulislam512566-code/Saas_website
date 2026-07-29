@@ -41,11 +41,11 @@ class HomeController extends Controller
             ->get();
 
         // Replaced ->ordered() with ->orderBy('order', 'asc')
-       $plans = Plan::where('is_active', 1)
-             ->where('is_featured', 1)
-             ->orderBy('sort_order', 'asc') // <--- Change to this
-             ->limit(3)
-             ->get();
+        $plans = Plan::where('is_active', 1)
+            ->where('is_featured', 1)
+            ->orderBy('sort_order', 'asc')
+            ->limit(3)
+            ->get();
 
         return view('website.home', compact(
             'posts',
@@ -54,5 +54,27 @@ class HomeController extends Controller
             'portfolios',
             'plans'
         ));
+    }
+
+    /**
+     * Show the demo page.
+     */
+    public function demo()
+    {
+        return view('website.demo');
+    }
+
+    /**
+     * Handle newsletter subscription.
+     */
+    public function newsletterSubscribe(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        // Add newsletter subscription logic here
+        
+        return redirect()->back()->with('success', 'Subscribed successfully!');
     }
 }

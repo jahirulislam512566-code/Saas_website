@@ -1,185 +1,58 @@
-{{-- resources/views/admin/partials/notifications.blade.php --}}
-<div x-data="notificationsComponent()" 
-     x-init="init()"
-     class="relative">
-    
-    <!-- Notification Bell -->
-    <button @click="toggleNotifications()" 
-            class="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg p-2 transition-colors relative"
-            aria-label="Notifications">
-        <i class="fas fa-bell text-lg"></i>
-        <span x-show="unreadCount > 0" 
-              x-text="unreadCount > 9 ? '9+' : unreadCount"
-              class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-semibold rounded-full flex items-center justify-center px-1">
-        </span>
+<!-- admin/partials/notifications.blade.php -->
+<div class="relative" x-data="{ open: false }">
+    <button @click="open = !open" 
+            class="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+        <i class="fas fa-bell text-gray-700 dark:text-gray-300 text-lg"></i>
+        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900 animate-pulse"></span>
     </button>
     
-    <!-- Dropdown -->
-    <div x-show="isOpen" 
-         @click.away="closeNotifications()"
+    <div x-show="open" 
+         @click.away="open = false"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0 scale-95"
          x-transition:enter-end="opacity-100 scale-100"
-         class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50 max-h-[calc(100vh-6rem)] flex flex-col">
+         class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
         
         <!-- Header -->
-        <div class="flex items-center justify-between p-3 border-b border-gray-200 flex-shrink-0">
-            <p class="text-sm font-semibold text-gray-900">
-                Notifications
-                <span x-show="unreadCount > 0" 
-                      x-text="`(${unreadCount} unread)`"
-                      class="text-xs font-normal text-gray-500 ml-1"></span>
-            </p>
-            <div class="flex items-center space-x-2">
-                <button x-show="unreadCount > 0" 
-                        @click="markAllAsRead()"
-                        class="text-xs text-primary-600 hover:text-primary-700 font-medium">
-                    Mark all read
-                </button>
-                <button @click="closeNotifications()" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-sm"></i>
-                </button>
-            </div>
+        <div class="p-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+            <span class="font-semibold text-gray-900 dark:text-white">Notifications</span>
+            <button class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Mark all read</button>
         </div>
         
-        <!-- List -->
-        <div class="overflow-y-auto flex-1 divide-y divide-gray-100" x-ref="list">
-            <template x-for="notification in notifications" :key="notification.id">
-                <div class="px-3 py-2.5 hover:bg-gray-50 transition-colors" 
-                     :class="{'bg-blue-50/50': !notification.read_at}">
-                    <div class="flex items-start gap-2">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium" 
-                               :class="notification.read_at ? 'text-gray-900' : 'text-blue-700'"
-                               x-text="notification.title"></p>
-                            <p class="text-sm text-gray-600 truncate" x-text="notification.message"></p>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-xs text-gray-400" x-text="notification.time_ago"></span>
-                                <span x-show="!notification.read_at" 
-                                      class="text-xs text-blue-600 font-medium">● New</span>
-                            </div>
+        <!-- Notifications List -->
+        <div class="max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+            @forelse (Auth::user()->notifications->take(5) ?? [] as $notification)
+                <div class="p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer group">
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/20 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-{{ $notification->data['icon'] ?? 'bell' }} text-indigo-600 dark:text-indigo-400 text-sm"></i>
                         </div>
-                        <button x-show="!notification.read_at" 
-                                @click="markAsRead(notification.id)"
-                                class="text-xs text-primary-600 hover:text-primary-700 flex-shrink-0 mt-0.5">
-                            Mark read
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                {{ $notification->data['message'] ?? 'New notification' }}
+                            </p>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ $notification->created_at->diffForHumans() }}
+                            </span>
+                        </div>
+                        <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <i class="fas fa-times text-xs"></i>
                         </button>
                     </div>
                 </div>
-            </template>
-            
-            <!-- Empty State -->
-            <div x-show="notifications.length === 0" class="px-3 py-8 text-center">
-                <i class="fas fa-bell-slash text-3xl text-gray-300 mb-2 block"></i>
-                <p class="text-sm text-gray-500">No notifications yet</p>
-                <p class="text-xs text-gray-400 mt-1">We'll notify you when something happens</p>
-            </div>
+            @empty
+                <div class="p-8 text-center">
+                    <i class="fas fa-bell-slash text-3xl text-gray-300 dark:text-gray-700 mb-2"></i>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No notifications</p>
+                </div>
+            @endforelse
         </div>
         
         <!-- Footer -->
-        <div class="p-2 border-t border-gray-200 flex-shrink-0">
-            <a href="{{ route('admin.notifications.index') }}" 
-               class="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium py-1.5">
-                View All Notifications
-            </a>
+        <div class="p-2 border-t border-gray-200 dark:border-gray-800 text-center">
+            {{-- <a href="{{ route('admin.notifications') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                View all notifications <i class="fas fa-arrow-right ml-1"></i>
+            </a> --}}
         </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('notificationsComponent', () => ({
-        isOpen: false,
-        notifications: [],
-        unreadCount: 0,
-        refreshInterval: null,
-        
-        init() {
-            this.fetchNotifications();
-            this.startAutoRefresh();
-        },
-        
-        toggleNotifications() {
-            this.isOpen = !this.isOpen;
-            if (this.isOpen) {
-                this.fetchNotifications();
-            }
-        },
-        
-        closeNotifications() {
-            this.isOpen = false;
-        },
-        
-        async fetchNotifications() {
-            try {
-                const response = await fetch('/admin/api/notifications', {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    this.notifications = data.data;
-                    this.unreadCount = data.unread_count || 0;
-                }
-            } catch (error) {
-                console.error('Error fetching notifications:', error);
-            }
-        },
-        
-        async markAsRead(id) {
-            try {
-                const response = await fetch(`/admin/notifications/${id}/read`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json',
-                    },
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    this.fetchNotifications();
-                }
-            } catch (error) {
-                console.error('Error marking notification as read:', error);
-            }
-        },
-        
-        async markAllAsRead() {
-            try {
-                const response = await fetch('/admin/notifications/read-all', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json',
-                    },
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    this.fetchNotifications();
-                }
-            } catch (error) {
-                console.error('Error marking all as read:', error);
-            }
-        },
-        
-        startAutoRefresh() {
-            this.refreshInterval = setInterval(() => {
-                if (!this.isOpen) {
-                    this.fetchNotifications();
-                }
-            }, 30000); // Refresh every 30 seconds
-        },
-        
-        destroy() {
-            if (this.refreshInterval) {
-                clearInterval(this.refreshInterval);
-            }
-        }
-    }));
-});
-</script>

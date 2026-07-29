@@ -1,0 +1,1 @@
+<?php /**PATH E:\Saas website\webcraft\resources\views/admin/dashboard/activities.blade.php ENDPATH**/ ?>

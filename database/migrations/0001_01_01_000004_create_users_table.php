@@ -11,13 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-         Schema::create('users', function (Blueprint $table) {
+          Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tenant_id')->nullable()->constrained('tenants')->onDelete('cascade');
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('role')->default('user'); 
             $table->string('avatar')->nullable();
             $table->string('company_name')->nullable();
             $table->string('job_title')->nullable();
@@ -37,6 +38,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'is_active']);
             $table->index('email');
             $table->index('created_at');
+            $table->index('role'); 
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

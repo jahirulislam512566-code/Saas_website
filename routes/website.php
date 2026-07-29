@@ -1,20 +1,16 @@
 <?php
 
-use App\Http\Controllers\Website\{
-    HomeController,
-    AboutController,
-    ServiceController,
-    ContactController,
-    BlogController,
-    PortfolioController,
-    TeamController,
-    PricingController,
-    FaqController,
-    PageController,
-    SearchController,
-    NewsletterController,
-    AuthController
-};
+use App\Http\Controllers\Agency\AboutController as AgencyAboutController;
+use App\Http\Controllers\Agency\ContactController as AgencyContactController;
+use App\Http\Controllers\Agency\HomeController as AgencyHomeController;
+use App\Http\Controllers\Agency\PortfolioController as AgencyPortfolioController;
+use App\Http\Controllers\Agency\ServicesController as AgencyServicesController;
+use App\Http\Controllers\Restaurant\AboutController as RestaurantAboutController;
+use App\Http\Controllers\Restaurant\ContactController as RestaurantContactController;
+use App\Http\Controllers\Restaurant\HomeController as RestaurantHomeController;
+use App\Http\Controllers\Restaurant\MenuController as RestaurantMenuController;
+use App\Http\Controllers\Website\{ HomeController, AboutController as WebsiteAboutController, ServiceController, ContactController as WebsiteContactController, BlogController, PortfolioController as WebsitePortfolioController, TeamController, PricingController, FaqController, PageController, SearchController, NewsletterController, TemplateController, FeatureController, SolutionController, ResourceController, CareerController, AccountController };
+use App\Http\Controllers\Website\DocsController;
 use App\Http\Controllers\Website\ThemeController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,47 +18,81 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | Website Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application's frontend.
-| These routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group.
-|
+| Note: This file is included from web.php
+| All routes here are already prefixed with 'website' or have specific prefixes
 */
 
-// ==================== MAIN HOME PAGE ====================
-Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/home', [HomeController::class, 'index'])->name('home.redirect');
+Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
+// ==================== FEATURES ROUTES ====================
+Route::prefix('features')->name('features.')->group(function () {
+    Route::get('/', [FeatureController::class, 'index'])->name('index');
+    Route::get('/{slug}', [FeatureController::class, 'show'])->name('show');
+    Route::get('/category/{category}', [FeatureController::class, 'category'])->name('category');
+});
 
-// ==================== WEBSITE PAGES ====================
+// ==================== TEMPLATES ROUTES ====================
+Route::prefix('templates')->name('templates.')->group(function () {
+    Route::get('/', [TemplateController::class, 'index'])->name('index');
+    Route::get('/{slug}', [TemplateController::class, 'show'])->name('show');
+    Route::get('/category/{category}', [TemplateController::class, 'category'])->name('category');
+    Route::post('/{id}/use', [TemplateController::class, 'useTemplate'])->name('use')->middleware('auth');
+});
+
+// ==================== SOLUTIONS ROUTES ====================
+Route::prefix('solutions')->name('solutions.')->group(function () {
+    Route::get('/', [SolutionController::class, 'index'])->name('index');
+    Route::get('/{slug}', [SolutionController::class, 'show'])->name('show');
+});
+
+// ==================== RESOURCES ROUTES ====================
+Route::prefix('resources')->name('resources.')->group(function () {
+    Route::get('/', [ResourceController::class, 'index'])->name('index');
+    Route::get('/category/{category}', [ResourceController::class, 'category'])->name('category');
+    Route::get('/{slug}', [ResourceController::class, 'show'])->name('show');
+});
+
+// ==================== BLOG ROUTES ====================
+Route::prefix('blog')->name('blog.')->group(function () {
+    Route::get('/', [BlogController::class, 'index'])->name('index');
+    Route::get('/{slug}', [BlogController::class, 'show'])->name('show');
+    Route::get('/category/{slug}', [BlogController::class, 'category'])->name('category');
+    Route::get('/tag/{slug}', [BlogController::class, 'tag'])->name('tag');
+    Route::post('/{post}/comment', [BlogController::class, 'storeComment'])->name('comment.store');
+});
+
+// Documentation Routes
+Route::prefix('docs')->name('docs.')->group(function () {
+    Route::get('/', [DocsController::class, 'index'])->name('index');
+    Route::get('/search', [DocsController::class, 'search'])->name('search');
+    Route::get('/category/{slug}', [DocsController::class, 'category'])->name('category');
+    Route::get('/article/{slug}', [DocsController::class, 'article'])->name('article');
+    Route::post('/feedback', [DocsController::class, 'feedback'])->name('feedback');
+});
+
+// ==================== WEBSITE STATIC PAGES ====================
+// These are accessible via /website/about, /website/contact, etc.
 Route::prefix('website')->name('website.')->group(function () {
     
     // Static Pages
-    Route::get('/about', [AboutController::class, 'index'])->name('about');
-    Route::get('/contact', [ContactController::class, 'index'])->name('contact');
-    Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+    Route::get('/about', [WebsiteAboutController::class, 'index'])->name('about');
+    Route::get('/contact', [WebsiteContactController::class, 'index'])->name('contact');
+    Route::post('/contact', [WebsiteContactController::class, 'store'])->name('contact.store');
     
     // Services
     Route::get('/services', [ServiceController::class, 'index'])->name('services');
     Route::get('/services/{slug}', [ServiceController::class, 'show'])->name('services.show');
     
-    // Blog
-    Route::get('/blog', [BlogController::class, 'index'])->name('blog');
-    Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
-    Route::get('/blog/category/{slug}', [BlogController::class, 'category'])->name('blog.category');
-    Route::get('/blog/tag/{slug}', [BlogController::class, 'tag'])->name('blog.tag');
-    Route::post('/blog/{post}/comment', [BlogController::class, 'storeComment'])->name('blog.comment.store');
-    
     // Portfolio
-    Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio');
-    Route::get('/portfolio/{slug}', [PortfolioController::class, 'show'])->name('portfolio.show');
-    Route::get('/portfolio/category/{slug}', [PortfolioController::class, 'category'])->name('portfolio.category');
+    Route::get('/portfolio', [WebsitePortfolioController::class, 'index'])->name('portfolio');
+    Route::get('/portfolio/{slug}', [WebsitePortfolioController::class, 'show'])->name('portfolio.show');
+    Route::get('/portfolio/category/{slug}', [WebsitePortfolioController::class, 'category'])->name('portfolio.category');
     
     // Team
     Route::get('/team', [TeamController::class, 'index'])->name('team');
     Route::get('/team/{slug}', [TeamController::class, 'show'])->name('team.show');
     
-    // Pricing
-    Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
+    // Pricing - Remove this if you have it in web.php
+    // Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
     
     // FAQ
     Route::get('/faq', [FaqController::class, 'index'])->name('faq');
@@ -79,33 +109,6 @@ Route::prefix('website')->name('website.')->group(function () {
     Route::post('/newsletter/unsubscribe', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
     Route::get('/newsletter/confirm/{token}', [NewsletterController::class, 'confirm'])->name('newsletter.confirm');
     
-    // Theme-specific routes
-    Route::prefix('themes')->name('themes.')->group(function () {
-        // Business theme
-        Route::prefix('business')->name('business.')->group(function () {
-            Route::get('/', [ThemeController::class, 'business'])->name('home');
-            Route::get('/about', [ThemeController::class, 'businessAbout'])->name('about');
-            Route::get('/services', [ThemeController::class, 'businessServices'])->name('services');
-            Route::get('/contact', [ThemeController::class, 'businessContact'])->name('contact');
-        });
-        
-        // Modern theme
-        Route::prefix('modern')->name('modern.')->group(function () {
-            Route::get('/', [ThemeController::class, 'modern'])->name('home');
-            Route::get('/about', [ThemeController::class, 'modernAbout'])->name('about');
-            Route::get('/services', [ThemeController::class, 'modernServices'])->name('services');
-            Route::get('/contact', [ThemeController::class, 'modernContact'])->name('contact');
-        });
-        
-        // Creative theme
-        Route::prefix('creative')->name('creative.')->group(function () {
-            Route::get('/', [ThemeController::class, 'creative'])->name('home');
-            Route::get('/about', [ThemeController::class, 'creativeAbout'])->name('about');
-            Route::get('/services', [ThemeController::class, 'creativeServices'])->name('services');
-            Route::get('/contact', [ThemeController::class, 'creativeContact'])->name('contact');
-        });
-    });
-    
     // Sitemap
     Route::get('/sitemap', function () {
         return view('website.sitemap');
@@ -117,19 +120,64 @@ Route::prefix('website')->name('website.')->group(function () {
     })->name('robots');
 });
 
-// ==================== AUTHENTICATION ROUTES (Optional) ====================
-Route::prefix('auth')->name('auth.')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
-    Route::get('/register', [AuthController::class, 'showRegistrationForm'])->name('register');
-    Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    Route::get('/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
-    Route::post('/email/verification-notification', [AuthController::class, 'resendVerification'])->name('verification.resend');
-    Route::get('/forgot-password', [AuthController::class, 'showForgotForm'])->name('password.request');
-    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
-    Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
-    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+// ==================== CAREERS ROUTES ====================
+Route::prefix('careers')->name('careers.')->group(function () {
+    Route::get('/', [CareerController::class, 'index'])->name('index');
+    Route::get('/{slug}', [CareerController::class, 'show'])->name('show');
+    Route::post('/{slug}/apply', [CareerController::class, 'apply'])->name('apply')->middleware('auth');
+});
+
+// ==================== ABOUT ROUTES ====================
+Route::prefix('about')->name('about.')->group(function () {
+    Route::get('/', [WebsiteAboutController::class, 'index'])->name('index');
+    Route::get('/team', [TeamController::class, 'index'])->name('team');
+});
+
+// ==================== THEME ROUTES ====================
+Route::prefix('themes')->name('themes.')->group(function () {
+    
+    // ============ AGENCY THEME ============
+    Route::prefix('agency')->name('agency.')->group(function () {
+        Route::get('/', [AgencyHomeController::class, 'index'])->name('home');
+        Route::get('/about', [AgencyAboutController::class, 'index'])->name('about');
+        Route::get('/services', [AgencyServicesController::class, 'index'])->name('services');
+        Route::get('/portfolio', [AgencyPortfolioController::class, 'index'])->name('portfolio');
+        Route::get('/contact', [AgencyContactController::class, 'index'])->name('contact');
+        Route::post('/contact', [AgencyContactController::class, 'store'])->name('contact.store');
+    });
+    
+    // ============ RESTAURANT THEME ============
+    Route::prefix('restaurant')->name('restaurant.')->group(function () {
+        Route::get('/', [RestaurantHomeController::class, 'index'])->name('home');
+        Route::get('/about', [RestaurantAboutController::class, 'index'])->name('about');
+        Route::get('/menu', [RestaurantMenuController::class, 'index'])->name('menu');
+        Route::get('/contact', [RestaurantContactController::class, 'index'])->name('contact');
+        Route::post('/contact', [RestaurantContactController::class, 'store'])->name('contact.store');
+    });
+    
+    // ============ BUSINESS THEME ============
+    Route::prefix('business')->name('business.')->group(function () {
+        Route::get('/', [ThemeController::class, 'business'])->name('home');
+        Route::get('/about', [ThemeController::class, 'businessAbout'])->name('about');
+        Route::get('/services', [ThemeController::class, 'businessServices'])->name('services');
+        Route::get('/contact', [ThemeController::class, 'businessContact'])->name('contact');
+    });
+    
+    // ============ MODERN THEME ============
+    Route::prefix('modern')->name('modern.')->group(function () {
+        Route::get('/', [ThemeController::class, 'modern'])->name('home');
+        Route::get('/about', [ThemeController::class, 'modernAbout'])->name('about');
+        Route::get('/services', [ThemeController::class, 'modernServices'])->name('services');
+        Route::get('/contact', [ThemeController::class, 'modernContact'])->name('contact');
+    });
+    
+    // ============ CREATIVE THEME ============
+    Route::prefix('creative')->name('creative.')->group(function () {
+        Route::get('/', [ThemeController::class, 'creative'])->name('home');
+        Route::get('/about', [ThemeController::class, 'creativeAbout'])->name('about');
+        Route::get('/services', [ThemeController::class, 'creativeServices'])->name('services');
+        Route::get('/contact', [ThemeController::class, 'creativeContact'])->name('contact');
+    });
 });
 
 // ==================== PAYMENT ROUTES ====================
@@ -161,6 +209,9 @@ Route::prefix('account')->name('account.')->middleware(['auth'])->group(function
     Route::get('/settings', [App\Http\Controllers\Website\AccountController::class, 'settings'])->name('settings');
     Route::put('/settings', [App\Http\Controllers\Website\AccountController::class, 'updateSettings'])->name('settings.update');
 });
+
+// ==================== DEMO ROUTE ====================
+Route::get('/demo', [HomeController::class, 'demo'])->name('demo');
 
 // ==================== FALLBACK ROUTE ====================
 // Catch-all route for dynamic pages (should be last)

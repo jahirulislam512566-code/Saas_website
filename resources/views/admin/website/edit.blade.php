@@ -1,205 +1,292 @@
-{{-- resources/views/admin/websites/edit.blade.php --}}
-@extends('admin.layouts.admin')
+<!-- admin/websites/edit.blade.php -->
+@extends('layout.app')
 
 @section('title', 'Edit Website')
-
-@section('breadcrumb')
-    <li>
-        <div class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2 text-sm"></i>
-            <a href="{{ route('admin.websites.index') }}" class="text-gray-500 hover:text-gray-700">Websites</a>
-        </div>
-    </li>
-    <li>
-        <div class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2 text-sm"></i>
-            <span class="text-gray-700">{{ $website->name }}</span>
-        </div>
-    </li>
-@endsection
+@section('page-title', 'Edit Website')
+@section('page-subtitle', 'Update website details and configuration')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <div>
-                <h2 class="text-xl font-bold text-gray-900">Edit Website</h2>
-                <p class="text-sm text-gray-500 mt-1">Update website information and settings</p>
-            </div>
-            <div class="flex items-center space-x-2">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                    {{ $website->status == 'published' ? 'bg-green-100 text-green-800' : 
-                       ($website->status == 'draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">
-                    {{ ucfirst($website->status) }}
-                </span>
-                <a href="{{ route('admin.websites.show', $website) }}" 
-                   class="text-gray-400 hover:text-blue-600 transition-colors" title="View">
-                    <i class="fas fa-eye"></i>
-                </a>
-            </div>
-        </div>
-        
-        <form action="{{ route('admin.websites.update', $website) }}" method="POST" enctype="multipart/form-data" class="p-6">
-            @csrf
-            @method('PUT')
-            
-            <div class="space-y-6">
-                <!-- Basic Information -->
-                <div>
-                    <h4 class="text-sm font-medium text-gray-900 mb-4">Basic Information</h4>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-                                Website Name <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" name="name" id="name" value="{{ old('name', $website->name) }}" required
-                                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('name') border-red-500 @enderror"
-                                   placeholder="My Awesome Website">
-                            @error('name')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
+<div x-data="websiteForm()" x-init="init()">
+    <form @submit.prevent="submitForm()" class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Form -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h4>
                         
-                        <div>
-                            <label for="domain" class="block text-sm font-medium text-gray-700 mb-1">
-                                Domain
-                            </label>
-                            <input type="text" name="domain" id="domain" value="{{ old('domain', $website->domain) }}"
-                                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('domain') border-red-500 @enderror"
-                                   placeholder="example.com">
-                            <p class="mt-1 text-xs text-gray-500">Custom domain for the website</p>
-                            @error('domain')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
-                            Description
-                        </label>
-                        <textarea name="description" id="description" rows="3"
-                                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('description') border-red-500 @enderror"
-                                  placeholder="Brief description of the website">{{ old('description', $website->description) }}</textarea>
-                        @error('description')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Website Name *</label>
+                                <input type="text" x-model="form.name" required
+                                       class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
 
-                <!-- Screenshot -->
-                <div>
-                    <h4 class="text-sm font-medium text-gray-900 mb-4">Screenshot</h4>
-                    
-                    @if($website->screenshot)
-                        <div class="mb-3 relative inline-block">
-                            <img src="{{ Storage::disk('public')->url($website->screenshot) }}" 
-                                 alt="{{ $website->name }}" 
-                                 class="w-full max-w-md rounded-lg border border-gray-200">
-                            <button type="button" onclick="removeScreenshot()" 
-                                    class="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    @endif
-                    
-                    <input type="file" name="screenshot" id="screenshot" accept="image/*"
-                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100">
-                    <p class="mt-1 text-xs text-gray-500">PNG, JPG up to 5MB</p>
-                </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Domain *</label>
+                                <input type="text" x-model="form.domain" required
+                                       placeholder="example.com"
+                                       class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
 
-                <!-- Status -->
-                <div>
-                    <h4 class="text-sm font-medium text-gray-900 mb-4">Status</h4>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">
-                                Status <span class="text-red-500">*</span>
-                            </label>
-                            <select name="status" id="status" required
-                                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('status') border-red-500 @enderror">
-                                <option value="draft" {{ old('status', $website->status) == 'draft' ? 'selected' : '' }}>Draft</option>
-                                <option value="published" {{ old('status', $website->status) == 'published' ? 'selected' : '' }}>Published</option>
-                                <option value="archived" {{ old('status', $website->status) == 'archived' ? 'selected' : '' }}>Archived</option>
-                            </select>
-                            @error('status')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Features</label>
-                            <div class="space-y-2 pt-2">
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="is_featured" value="1" {{ old('is_featured', $website->is_featured) ? 'checked' : '' }}
-                                           class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                                    <span class="ml-2 text-sm text-gray-700">Featured Website</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="has_ssl" value="1" {{ old('has_ssl', $website->has_ssl) ? 'checked' : '' }}
-                                           class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                                    <span class="ml-2 text-sm text-gray-700">Enable SSL</span>
-                                </label>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                                <textarea x-model="form.description" rows="3"
+                                          class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer *</label>
+                                <select x-model="form.customer_id" required
+                                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">Select customer...</option>
+                                    @foreach($customers as $customer)
+                                        <option value="{{ $customer->id }}">{{ $customer->name }} ({{ $customer->email }})</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Submit -->
-                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-                    <a href="{{ route('admin.websites.index') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        Cancel
-                    </a>
-                    <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                        <i class="fas fa-save mr-2"></i> Update Website
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
+                <!-- SEO Settings -->
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4">SEO Settings</h4>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meta Title</label>
+                                <input type="text" x-model="form.meta_title"
+                                       class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    <span x-text="form.meta_title?.length || 0"></span>/60 characters
+                                </p>
+                            </div>
 
-    <!-- Danger Zone -->
-    <div class="mt-6 bg-white rounded-xl shadow-sm overflow-hidden border-2 border-red-200">
-        <div class="px-6 py-4 border-b border-red-200 bg-red-50">
-            <h3 class="text-sm font-bold text-red-700 flex items-center">
-                <i class="fas fa-exclamation-triangle mr-2"></i>
-                Danger Zone
-            </h3>
-        </div>
-        <div class="px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-900">Delete this website</p>
-                    <p class="text-xs text-gray-500">This action cannot be undone. All website data will be permanently removed.</p>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meta Description</label>
+                                <textarea x-model="form.meta_description" rows="2"
+                                          class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    <span x-text="form.meta_description?.length || 0"></span>/160 characters
+                                </p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Keywords</label>
+                                <input type="text" x-model="form.keywords"
+                                       placeholder="keyword1, keyword2, keyword3"
+                                       class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Comma separated keywords</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <form action="{{ route('admin.websites.destroy', $website) }}" method="POST" 
-                      onsubmit="return confirm('Are you sure you want to delete this website? This action cannot be undone!')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                        <i class="fas fa-trash mr-2"></i> Delete Website
-                    </button>
-                </form>
+
+                <!-- Design Settings -->
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Design Settings</h4>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Template</label>
+                                <select x-model="form.template"
+                                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <option value="default">Default</option>
+                                    <option value="modern">Modern</option>
+                                    <option value="minimal">Minimal</option>
+                                    <option value="corporate">Corporate</option>
+                                    <option value="creative">Creative</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color Scheme</label>
+                                <div class="flex gap-3">
+                                    <label class="flex items-center gap-2">
+                                        <input type="radio" x-model="form.color_scheme" value="light">
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Light</span>
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="radio" x-model="form.color_scheme" value="dark">
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Dark</span>
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="radio" x-model="form.color_scheme" value="auto">
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Auto</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Color</label>
+                                <div class="flex items-center gap-3">
+                                    <input type="color" x-model="form.primary_color"
+                                           class="w-12 h-10 rounded border border-gray-300 dark:border-gray-700 cursor-pointer">
+                                    <input type="text" x-model="form.primary_color"
+                                           class="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Status -->
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Status & Settings</h4>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                                <select x-model="form.status"
+                                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <option value="published">Published</option>
+                                    <option value="draft">Draft</option>
+                                    <option value="archived">Archived</option>
+                                    <option value="suspended">Suspended</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Visibility</label>
+                                <select x-model="form.visibility"
+                                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <option value="public">Public</option>
+                                    <option value="private">Private</option>
+                                    <option value="password">Password Protected</option>
+                                </select>
+                            </div>
+
+                            <div x-show="form.visibility === 'password'">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                                <input type="text" x-model="form.password"
+                                       class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" x-model="form.is_featured">
+                                Feature this website
+                            </label>
+
+                            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" x-model="form.allow_indexing">
+                                Allow search engine indexing
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Screenshot -->
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Screenshot</h4>
+                        
+                        <div class="flex flex-col items-center">
+                            <div class="relative w-full">
+                                <img id="screenshotPreview" 
+                                     src="{{ $website->screenshot ?? 'https://via.placeholder.com/400x200?text=No+Screenshot' }}" 
+                                     alt="Screenshot" 
+                                     class="w-full h-40 object-cover rounded-lg border border-gray-200 dark:border-gray-700">
+                                <label for="screenshot" 
+                                       class="absolute bottom-2 right-2 p-1.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg cursor-pointer transition-colors">
+                                    <i class="fas fa-camera text-white text-xs"></i>
+                                    <input type="file" id="screenshot" x-model="form.screenshot" accept="image/*" 
+                                           class="hidden" @change="previewScreenshot($event)">
+                                </label>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">PNG, JPG up to 5MB</p>
+                            <button type="button" @click="generateScreenshot()" 
+                                    class="mt-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                                <i class="fas fa-sync mr-1"></i> Auto-generate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div class="p-6">
+                        <div class="space-y-2">
+                            <button type="submit" 
+                                    class="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-all">
+                                <i class="fas fa-save mr-1.5"></i>Update Website
+                            </button>
+                            <a href="{{ route('admin.websites.show', $website) }}" 
+                               class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                                <i class="fas fa-eye mr-1.5"></i>View Website
+                            </a>
+                            <a href="{{ route('admin.websites.index') }}" 
+                               class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                                <i class="fas fa-arrow-left mr-1.5"></i>Back to Websites
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
 
 @push('scripts')
 <script>
-    function removeScreenshot() {
-        if (confirm('Remove the screenshot?')) {
-            fetch('{{ route('admin.websites.screenshot.destroy', $website) }}', {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json'
+function websiteForm() {
+    return {
+        form: @json($website->toArray()),
+        screenshotFile: null,
+        
+        previewScreenshot(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.screenshotFile = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('screenshotPreview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        },
+        
+        generateScreenshot() {
+            alert('Screenshot generation feature coming soon!');
+        },
+        
+        submitForm() {
+            const formData = new FormData();
+            Object.entries(this.form).forEach(([key, value]) => {
+                if (value !== null && value !== '') {
+                    formData.append(key, value);
                 }
-            }).then(() => window.location.reload());
+            });
+            formData.append('_method', 'PUT');
+            
+            if (this.screenshotFile) {
+                formData.append('screenshot', this.screenshotFile);
+            }
+            
+            fetch(`{{ route('admin.websites.update', $website) }}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = `{{ route('admin.websites.show', $website) }}`;
+                } else {
+                    alert(data.error || 'Error updating website');
+                }
+            })
+            .catch(error => console.error('Error updating website:', error));
         }
     }
+}
 </script>
 @endpush
-@endsection

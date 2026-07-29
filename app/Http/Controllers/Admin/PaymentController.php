@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Models\Tenant;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +22,7 @@ class PaymentController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        $query = Payment::with(['user', 'subscription'])
+        $query = Payment::with(['user', 'subscription', 'order'])
             ->when($tenantId, function ($q) use ($tenantId) {
                 return $q->where('tenant_id', $tenantId);
             });
@@ -79,6 +79,7 @@ class PaymentController extends Controller
     public function create()
     {
         $tenantId = Auth::user()->tenant_id;
+        
         $users = User::when($tenantId, function ($q) use ($tenantId) {
             return $q->where('tenant_id', $tenantId);
         })->get();
@@ -87,12 +88,17 @@ class PaymentController extends Controller
             return $q->where('tenant_id', $tenantId);
         })->with('user')->get();
 
+        $orders = Order::when($tenantId, function ($q) use ($tenantId) {
+            return $q->where('tenant_id', $tenantId);
+        })->where('status', 'pending')->get();
+
         $paymentMethods = ['credit_card', 'paypal', 'bank_transfer', 'crypto', 'stripe', 'razorpay'];
-        $currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'INR'];
+        $currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'INR', 'BDT'];
 
         return view('admin.payments.create', compact(
             'users', 
-            'subscriptions', 
+            'subscriptions',
+            'orders',
             'paymentMethods', 
             'currencies'
         ));
@@ -108,6 +114,7 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
             'subscription_id' => ['nullable', 'exists:subscriptions,id'],
+            'order_id' => ['nullable', 'exists:orders,id'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'currency' => ['required', 'string', 'size:3'],
             'payment_method' => ['required', Rule::in(['credit_card', 'paypal', 'bank_transfer', 'crypto', 'stripe', 'razorpay'])],
@@ -122,7 +129,8 @@ class PaymentController extends Controller
             $payment = Payment::create([
                 'tenant_id' => $tenantId,
                 'user_id' => $validated['user_id'],
-                'subscription_id' => $validated['subscription_id'],
+                'subscription_id' => $validated['subscription_id'] ?? null,
+                'order_id' => $validated['order_id'] ?? null,
                 'amount' => $validated['amount'],
                 'currency' => $validated['currency'],
                 'payment_method' => $validated['payment_method'],
@@ -142,6 +150,11 @@ class PaymentController extends Controller
                 $this->updateSubscriptionAfterPayment($payment);
             }
 
+            // If payment is completed and has order, update order
+            if ($payment->status === 'completed' && $payment->order_id) {
+                $this->updateOrderAfterPayment($payment);
+            }
+
             DB::commit();
 
             return redirect()->route('admin.payments.index')
@@ -159,7 +172,7 @@ class PaymentController extends Controller
     public function show(Payment $payment)
     {
         $this->authorizeTenant($payment);
-        $payment->load(['user', 'subscription', 'subscription.plan']);
+        $payment->load(['user', 'subscription', 'subscription.plan', 'order']);
         
         return view('admin.payments.show', compact('payment'));
     }
@@ -180,13 +193,18 @@ class PaymentController extends Controller
             return $q->where('tenant_id', $tenantId);
         })->with('user')->get();
 
+        $orders = Order::when($tenantId, function ($q) use ($tenantId) {
+            return $q->where('tenant_id', $tenantId);
+        })->get();
+
         $paymentMethods = ['credit_card', 'paypal', 'bank_transfer', 'crypto', 'stripe', 'razorpay'];
-        $currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'INR'];
+        $currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'INR', 'BDT'];
 
         return view('admin.payments.edit', compact(
             'payment',
             'users', 
-            'subscriptions', 
+            'subscriptions',
+            'orders',
             'paymentMethods', 
             'currencies'
         ));
@@ -202,6 +220,7 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
             'subscription_id' => ['nullable', 'exists:subscriptions,id'],
+            'order_id' => ['nullable', 'exists:orders,id'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'currency' => ['required', 'string', 'size:3'],
             'payment_method' => ['required', Rule::in(['credit_card', 'paypal', 'bank_transfer', 'crypto', 'stripe', 'razorpay'])],
@@ -217,8 +236,13 @@ class PaymentController extends Controller
             $payment->update($validated);
 
             // If status changed to completed and subscription exists
-            if ($oldStatus !== 'completed' && $payment->status === 'completed' && $payment->subscription_id) {
-                $this->updateSubscriptionAfterPayment($payment);
+            if ($oldStatus !== 'completed' && $payment->status === 'completed') {
+                if ($payment->subscription_id) {
+                    $this->updateSubscriptionAfterPayment($payment);
+                }
+                if ($payment->order_id) {
+                    $this->updateOrderAfterPayment($payment);
+                }
             }
 
             DB::commit();
@@ -247,48 +271,6 @@ class PaymentController extends Controller
             Log::error('Payment deletion failed: ' . $e->getMessage());
             return back()->with('error', 'Failed to delete payment.');
         }
-    }
-
-    /**
-     * Process a payment (API endpoint for payment gateways).
-     */
-    public function process(Request $request)
-    {
-        $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
-            'currency' => ['required', 'string', 'size:3'],
-            'payment_method' => ['required', Rule::in(['credit_card', 'paypal', 'stripe'])],
-            'subscription_id' => ['nullable', 'exists:subscriptions,id'],
-            'payment_token' => ['required_if:payment_method,stripe', 'string'],
-            'description' => ['nullable', 'string'],
-        ]);
-
-        // Here you would integrate with payment gateways
-        // For now, just create a pending payment
-        $payment = Payment::create([
-            'tenant_id' => Auth::user()->tenant_id,
-            'user_id' => $validated['user_id'],
-            'subscription_id' => $validated['subscription_id'] ?? null,
-            'amount' => $validated['amount'],
-            'currency' => $validated['currency'],
-            'payment_method' => $validated['payment_method'],
-            'status' => 'pending',
-            'transaction_id' => $this->generateTransactionId(),
-            'description' => $validated['description'] ?? 'Payment processed',
-            'payment_date' => now(),
-            'payment_details' => [
-                'token' => $validated['payment_token'] ?? null,
-                'processing_at' => now()->toISOString(),
-            ],
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Payment processed successfully.',
-            'payment' => $payment,
-            'redirect_url' => route('admin.payments.show', $payment),
-        ]);
     }
 
     /**
@@ -342,13 +324,46 @@ class PaymentController extends Controller
     }
 
     /**
-     * Export payments to CSV/Excel.
+     * Void a payment.
+     */
+    public function void(Payment $payment)
+    {
+        $this->authorizeTenant($payment);
+
+        if ($payment->status !== 'pending') {
+            return back()->with('error', 'Only pending payments can be voided.');
+        }
+
+        try {
+            $payment->update([
+                'status' => 'cancelled',
+                'voided_at' => now(),
+                'voided_by' => Auth::user()->name,
+                'payment_details' => array_merge(
+                    $payment->payment_details ?? [],
+                    [
+                        'voided_by' => Auth::user()->name,
+                        'voided_at' => now()->toISOString(),
+                    ]
+                ),
+            ]);
+
+            return redirect()->route('admin.payments.show', $payment)
+                ->with('success', 'Payment voided successfully.');
+        } catch (\Exception $e) {
+            Log::error('Payment void failed: ' . $e->getMessage());
+            return back()->with('error', 'Failed to void payment.');
+        }
+    }
+
+    /**
+     * Export payments to CSV.
      */
     public function export(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
 
-        $payments = Payment::with(['user', 'subscription'])
+        $payments = Payment::with(['user', 'subscription', 'order'])
             ->when($tenantId, function ($q) use ($tenantId) {
                 return $q->where('tenant_id', $tenantId);
             })
@@ -363,7 +378,7 @@ class PaymentController extends Controller
         $callback = function () use ($payments) {
             $file = fopen('php://output', 'w');
             fputcsv($file, [
-                'ID', 'User', 'Subscription', 'Amount', 'Currency', 
+                'ID', 'User', 'Subscription', 'Order', 'Amount', 'Currency', 
                 'Payment Method', 'Status', 'Transaction ID', 'Date'
             ]);
 
@@ -372,6 +387,7 @@ class PaymentController extends Controller
                     $payment->id,
                     $payment->user->name ?? 'N/A',
                     $payment->subscription->name ?? 'N/A',
+                    $payment->order->order_number ?? 'N/A',
                     $payment->amount,
                     $payment->currency,
                     $payment->payment_method,
@@ -385,6 +401,50 @@ class PaymentController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Generate invoice for payment.
+     */
+    public function invoice(Payment $payment)
+    {
+        $this->authorizeTenant($payment);
+        // Logic to generate invoice
+        return view('admin.payments.invoice', compact('payment'));
+    }
+
+    /**
+     * Download invoice for payment.
+     */
+    public function downloadInvoice(Payment $payment)
+    {
+        $this->authorizeTenant($payment);
+        // Logic to download invoice
+        // return response()->download($path);
+    }
+
+    /**
+     * Search payments.
+     */
+    public function search(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $search = $request->q;
+
+        $payments = Payment::when($tenantId, function ($q) use ($tenantId) {
+            return $q->where('tenant_id', $tenantId);
+        })
+        ->where(function ($q) use ($search) {
+            $q->where('transaction_id', 'like', "%{$search}%")
+              ->orWhereHas('user', function ($sub) use ($search) {
+                  $sub->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+              });
+        })
+        ->limit(10)
+        ->get(['id', 'transaction_id', 'amount', 'status']);
+
+        return response()->json($payments);
     }
 
     /**
@@ -423,11 +483,10 @@ class PaymentController extends Controller
             return;
         }
 
-        // Update subscription status
         $subscription->update([
             'status' => 'active',
             'last_payment_at' => now(),
-            'next_payment_at' => $this->calculateNextPaymentDate($subscription->billing_cycle),
+            'next_payment_at' => $this->calculateNextPaymentDate($subscription->billing_cycle ?? 'monthly'),
         ]);
 
         // Update user's subscription status
@@ -436,9 +495,23 @@ class PaymentController extends Controller
                 'subscription_status' => 'active',
             ]);
         }
+    }
 
-        // Create invoice for this payment
-        $this->generateInvoice($payment);
+    /**
+     * Update order after successful payment.
+     */
+    protected function updateOrderAfterPayment(Payment $payment)
+    {
+        $order = $payment->order;
+        if (!$order) {
+            return;
+        }
+
+        $order->update([
+            'payment_status' => 'paid',
+            'status' => 'processing',
+            'paid_at' => now(),
+        ]);
     }
 
     /**
@@ -454,16 +527,6 @@ class PaymentController extends Controller
             'annual' => $now->addYear(),
             default => $now->addMonth(),
         };
-    }
-
-    /**
-     * Generate invoice for payment.
-     */
-    protected function generateInvoice(Payment $payment)
-    {
-        // You would implement Invoice model and generation logic here
-        // For now, just log it
-        Log::info('Invoice generated for payment: ' . $payment->id);
     }
 
     /**

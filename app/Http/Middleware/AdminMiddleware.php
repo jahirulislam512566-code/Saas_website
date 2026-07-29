@@ -9,30 +9,21 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AdminMiddleware
 {
+    /**
+     * Handle an incoming request.
+     */
     public function handle(Request $request, Closure $next): Response
     {
-        // Use admin guard
-        if (!Auth::guard('admin')->check()) {
-            return redirect()->route('admin.login')
-                ->with('error', 'Please login to access the admin panel.');
+        // Check if user is logged in
+        if (!Auth::check()) {
+            return redirect()->route('login');
         }
 
-        $user = Auth::guard('admin')->user();
+        $user = Auth::user();
 
-        // Check if user is active
-        if (!$user->is_active) {
-            Auth::guard('admin')->logout();
-            return redirect()->route('admin.login')
-                ->with('error', 'Your account has been deactivated.');
-        }
-
-        // Optional: Role/Permission check
-        $hasAdminAccess = $user->roles->contains(fn($role) => 
-            in_array($role->slug ?? $role->name, ['admin', 'super-admin'])
-        ) || $user->hasPermission('access-admin-panel');
-
-        if (!$hasAdminAccess) {
-            abort(403, 'You do not have permission to access the admin panel.');
+        // Check if user is admin using the isAdmin method
+        if (!$user->isAdmin()) {
+            abort(403, 'Access denied. Admin only.');
         }
 
         return $next($request);

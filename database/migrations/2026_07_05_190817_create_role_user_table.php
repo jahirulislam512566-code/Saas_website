@@ -55,6 +55,7 @@ return new class extends Migration
             $table->index(['expires_at'], 'role_user_expires_at_index');
             $table->index(['assigned_by'], 'role_user_assigned_by_index');
             $table->index(['assigned_at'], 'role_user_assigned_at_index');
+            $table->index(['user_id', 'role_id', 'tenant_id'], 'role_user_composite_index');
         });
     }
 

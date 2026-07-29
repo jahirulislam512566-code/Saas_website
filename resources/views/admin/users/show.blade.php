@@ -1,129 +1,280 @@
-{{-- resources/views/admin/users/show.blade.php --}}
-@extends('admin.layouts.admin')
+<!-- admin/users/show.blade.php -->
+@extends('layout.app')
 
-@section('title', $user->name)
-
-@section('breadcrumb')
-    <li>
-        <div class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2 text-sm"></i>
-            <a href="{{ route('admin.users.index') }}" class="text-gray-500 hover:text-gray-700">Users</a>
-        </div>
-    </li>
-    <li>
-        <div class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2 text-sm"></i>
-            <span class="text-gray-700">{{ $user->name }}</span>
-        </div>
-    </li>
-@endsection
+@section('title', 'User Profile')
+@section('page-title', 'User Profile')
+@section('page-subtitle', 'View user details and activity')
 
 @section('content')
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center space-x-4">
-            <x-admin.avatar :src="$user->avatar" :name="$user->name" size="lg" />
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">{{ $user->name }}</h1>
-                <div class="flex items-center space-x-3 mt-1">
-                    <span class="text-sm text-gray-500">{{ $user->email }}</span>
-                    <span class="text-gray-300">|</span>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                        {{ $user->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                        {{ $user->is_active ? 'Active' : 'Inactive' }}
-                    </span>
-                    <span class="text-xs text-gray-400">ID: #{{ $user->id }}</span>
+<div x-data="userProfile()" x-init="init()">
+    <!-- Profile Header -->
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden mb-6">
+        <div class="p-6">
+            <div class="flex flex-wrap items-center gap-6">
+                <img src="{{ $user->avatar ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=4f46e5&color=fff&size=128' }}" 
+                     alt="{{ $user->name }}" 
+                     class="w-24 h-24 rounded-full border-4 border-indigo-500/20">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ $user->name }}</h3>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
+                                     {{ $user->role === 'admin' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
+                                        ($user->role === 'manager' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                        ($user->role === 'support' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                        ($user->role === 'developer' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                        'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'))) }}">
+                            <i class="fas fa-{{ $user->role === 'admin' ? 'crown' : 
+                                        ($user->role === 'manager' ? 'user-tie' :
+                                        ($user->role === 'support' ? 'headset' :
+                                        ($user->role === 'developer' ? 'code' : 'edit'))) }}"></i>
+                            {{ ucfirst($user->role) }}
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
+                                     {{ $user->status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 
+                                        ($user->status === 'pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400') }}">
+                            <i class="fas fa-{{ $user->status === 'active' ? 'check-circle' : 
+                                        ($user->status === 'pending' ? 'clock' : 'times-circle') }}"></i>
+                            {{ ucfirst($user->status) }}
+                        </span>
+                    </div>
+                    <p class="text-gray-500 dark:text-gray-400 mt-1">{{ $user->email }}</p>
+                    @if($user->phone)
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">{{ $user->phone }}</p>
+                    @endif
+                    @if($user->department)
+                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                            <i class="fas fa-building mr-1"></i> {{ ucfirst($user->department) }}
+                        </p>
+                    @endif
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('admin.users.edit', $user) }}" 
+                       class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-all">
+                        <i class="fas fa-edit mr-1.5"></i>Edit
+                    </a>
+                    <a href="{{ route('admin.users.permissions', $user) }}" 
+                       class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                        <i class="fas fa-lock mr-1.5"></i>Permissions
+                    </a>
                 </div>
             </div>
         </div>
-        <div class="flex items-center space-x-2">
-            <a href="{{ route('admin.users.edit', $user) }}" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                <i class="fas fa-pen mr-2"></i> Edit
-            </a>
-            <a href="{{ route('admin.users.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                <i class="fas fa-arrow-left mr-2"></i> Back
-            </a>
-        </div>
     </div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Total Posts</p>
-            <p class="text-xl font-bold text-gray-900">{{ $stats['total_posts'] ?? 0 }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Subscriptions</p>
-            <p class="text-xl font-bold text-green-600">{{ $stats['total_subscriptions'] ?? 0 }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Active Subscriptions</p>
-            <p class="text-xl font-bold text-blue-600">{{ $stats['active_subscriptions'] ?? 0 }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Activities</p>
-            <p class="text-xl font-bold text-purple-600">{{ $stats['total_activities'] ?? 0 }}</p>
-        </div>
-    </div>
-
-    <!-- User Details -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Stats -->
         <div class="lg:col-span-2 space-y-6">
-            <!-- Recent Activity -->
-            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                    <h3 class="text-sm font-medium text-gray-900">Recent Activity</h3>
-                    <a href="{{ route('admin.users.activity', $user) }}" class="text-xs text-primary-600 hover:text-primary-700">
-                        View All
-                    </a>
+            <!-- Activity Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Logins</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="stats.logins">0</p>
                 </div>
-                <div class="divide-y divide-gray-200">
-                    @forelse($user->activities as $activity)
-                        <div class="px-6 py-3 hover:bg-gray-50 transition-colors">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-900">{{ $activity->description }}</p>
-                                    <p class="text-xs text-gray-500">{{ $activity->created_at->diffForHumans() }}</p>
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Actions</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="stats.actions">0</p>
+                </div>
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Projects</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="stats.projects">0</p>
+                </div>
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Tickets</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="stats.tickets">0</p>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-800">
+                    <h4 class="font-semibold text-gray-900 dark:text-white">Recent Activity</h4>
+                </div>
+                <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @forelse($activities as $activity)
+                        <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center
+                                             {{ $activity->type === 'login' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 
+                                                ($activity->type === 'update' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                ($activity->type === 'create' ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' :
+                                                'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400')) }}">
+                                    <i class="fas fa-{{ $activity->type === 'login' ? 'sign-in-alt' : 
+                                                ($activity->type === 'update' ? 'edit' : 
+                                                ($activity->type === 'create' ? 'plus' : 'clock')) }}"></i>
                                 </div>
-                                <span class="text-xs text-gray-400">{{ $activity->action }}</span>
+                                <div class="flex-1">
+                                    <p class="text-sm text-gray-900 dark:text-white">{{ $activity->description }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $activity->created_at->diffForHumans() }}</p>
+                                </div>
                             </div>
                         </div>
                     @empty
-                        <div class="px-6 py-4 text-center text-gray-500">No recent activity</div>
+                        <div class="p-4 text-center text-gray-500 dark:text-gray-400">
+                            <p>No recent activity</p>
+                        </div>
                     @endforelse
                 </div>
             </div>
         </div>
 
-        <!-- Sidebar Info -->
+        <!-- Sidebar -->
         <div class="space-y-6">
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <h3 class="text-sm font-medium text-gray-900 mb-4">User Information</h3>
-                <dl class="space-y-3">
-                    <div>
-                        <dt class="text-xs text-gray-500">Full Name</dt>
-                        <dd class="text-sm text-gray-900">{{ $user->name }}</dd>
+            <!-- User Info -->
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                <div class="p-6">
+                    <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Information</h4>
+                    
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500 dark:text-gray-400">User ID</span>
+                            <span class="text-gray-900 dark:text-white font-mono">#{{ $user->id }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500 dark:text-gray-400">Joined</span>
+                            <span class="text-gray-900 dark:text-white">{{ $user->created_at->format('M d, Y h:i A') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500 dark:text-gray-400">Last Login</span>
+                            <span class="text-gray-900 dark:text-white">{{ $user->last_login_at ? $user->last_login_at->format('M d, Y h:i A') : 'Never' }}</span>
+                        </div>
+                        @if($user->last_ip)
+                            <div class="flex justify-between">
+                                <span class="text-gray-500 dark:text-gray-400">Last IP</span>
+                                <span class="text-gray-900 dark:text-white font-mono">{{ $user->last_ip }}</span>
+                            </div>
+                        @endif
                     </div>
-                    <div>
-                        <dt class="text-xs text-gray-500">Email</dt>
-                        <dd class="text-sm text-gray-900">{{ $user->email }}</dd>
+                </div>
+            </div>
+
+            <!-- Permissions Summary -->
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white">Permissions</h4>
+                        <a href="{{ route('admin.users.permissions', $user) }}" 
+                           class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                            Manage
+                        </a>
                     </div>
-                    <div>
-                        <dt class="text-xs text-gray-500">Role</dt>
-                        <dd class="text-sm text-gray-900">{{ ucfirst($user->role ?? 'User') }}</dd>
+                    
+                    <div class="space-y-2">
+                        @foreach($permissions as $permission)
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">{{ ucfirst(str_replace('_', ' ', $permission->name)) }}</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full
+                                             {{ $permission->granted ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' }}">
+                                    {{ $permission->granted ? 'Granted' : 'Denied' }}
+                                </span>
+                            </div>
+                        @endforeach
                     </div>
-                    <div>
-                        <dt class="text-xs text-gray-500">Joined</dt>
-                        <dd class="text-sm text-gray-900">{{ $user->created_at->format('M d, Y H:i:s') }}</dd>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                <div class="p-6">
+                    <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Actions</h4>
+                    <div class="space-y-2">
+                        @if($user->status === 'active')
+                            <button @click="suspendUser()" 
+                                    class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors">
+                                <i class="fas fa-pause"></i> Suspend User
+                            </button>
+                        @elseif($user->status === 'suspended')
+                            <button @click="activateUser()" 
+                                    class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                                <i class="fas fa-play"></i> Activate User
+                            </button>
+                        @endif
+                        <button @click="sendResetLink()" 
+                                class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                            <i class="fas fa-envelope"></i> Send Password Reset
+                        </button>
+                        <button @click="deleteUser()" 
+                                class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+                            <i class="fas fa-trash-alt"></i> Delete User
+                        </button>
                     </div>
-                    <div>
-                        <dt class="text-xs text-gray-500">Last Updated</dt>
-                        <dd class="text-sm text-gray-900">{{ $user->updated_at->format('M d, Y H:i:s') }}</dd>
-                    </div>
-                </dl>
+                </div>
             </div>
         </div>
     </div>
 </div>
-@endsection
+
+@push('scripts')
+<script>
+function userProfile() {
+    return {
+        stats: @json($stats),
+        userId: {{ $user->id }},
+        
+        suspendUser() {
+            if (confirm('Are you sure you want to suspend this user?')) {
+                this.updateStatus('suspended');
+            }
+        },
+        
+        activateUser() {
+            if (confirm('Are you sure you want to activate this user?')) {
+                this.updateStatus('active');
+            }
+        },
+        
+        updateStatus(status) {
+            fetch(`{{ route('admin.users.status', $user) }}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ status })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            })
+            .catch(error => console.error('Error updating status:', error));
+        },
+        
+        sendResetLink() {
+            fetch(`{{ route('admin.users.reset-link', $user) }}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Password reset link sent successfully!');
+                }
+            })
+            .catch(error => console.error('Error sending reset link:', error));
+        },
+        
+        deleteUser() {
+            if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                fetch(`{{ route('admin.users.destroy', $user) }}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '{{ route("admin.users.index") }}';
+                    }
+                })
+                .catch(error => console.error('Error deleting user:', error));
+            }
+        }
+    }
+}
+</script>
+@endpush

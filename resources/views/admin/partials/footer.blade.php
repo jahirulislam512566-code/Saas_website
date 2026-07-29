@@ -1,30 +1,23 @@
-{{-- resources/views/admin/partials/footer.blade.php --}}
-<footer class="bg-white border-t border-gray-200 flex-shrink-0">
-    <div class="px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between text-sm text-gray-500">
-        <div class="flex items-center space-x-2">
-            <p>&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
-            <span class="hidden sm:inline text-gray-300">|</span>
-            <span class="text-xs text-gray-400">v{{ config('app.version', '1.0.0') }}</span>
-        </div>
-        
-        <div class="flex items-center space-x-4 mt-2 sm:mt-0">
-            <a href="#" class="hover:text-gray-700 transition-colors text-xs">
-                <i class="fas fa-shield-alt mr-1"></i> Privacy
+<!-- admin/partials/footer.blade.php -->
+<footer class="border-t border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm mt-auto">
+    <div class="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-600 dark:text-gray-400">
+        <span>
+            &copy; {{ date('Y') }} {{ config('app.name', 'SaaS Admin') }}. All rights reserved.
+        </span>
+        <div class="flex items-center gap-6">
+            <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i class="fas fa-shield-alt mr-1.5"></i> Privacy
             </a>
-            <a href="#" class="hover:text-gray-700 transition-colors text-xs">
-                <i class="fas fa-file-contract mr-1"></i> Terms
+            <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i class="fas fa-file-contract mr-1.5"></i> Terms
             </a>
-            <a href="#" class="hover:text-gray-700 transition-colors text-xs">
-                <i class="fas fa-life-ring mr-1"></i> Support
+            <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i class="fas fa-headset mr-1.5"></i> Support
             </a>
-            <a href="#" class="hover:text-gray-700 transition-colors text-xs">
-                <i class="fas fa-code mr-1"></i> Docs
-            </a>
-            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
-                    class="text-gray-400 hover:text-gray-600 transition-colors" 
-                    title="Back to top">
-                <i class="fas fa-arrow-up text-xs"></i>
-            </button>
+            <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span class="text-xs">System Online</span>
+            </span>
         </div>
     </div>
 </footer>

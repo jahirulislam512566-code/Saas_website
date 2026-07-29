@@ -1,152 +1,193 @@
 {{-- resources/views/admin/customers/show.blade.php --}}
+
 @extends('admin.layouts.admin')
 
-@section('title', $customer->name)
-
-@section('breadcrumb')
-    <li>
-        <div class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2 text-sm"></i>
-            <a href="{{ route('admin.customers.index') }}" class="text-gray-500 hover:text-gray-700">Customers</a>
-        </div>
-    </li>
-    <li>
-        <div class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2 text-sm"></i>
-            <span class="text-gray-700">{{ $customer->name }}</span>
-        </div>
-    </li>
-@endsection
+@section('title', 'Customer Details')
+@section('page-title', 'Customer: ' . $customer->name)
 
 @section('content')
-<div class="space-y-6">
-    <!-- ===== HEADER ===== -->
-    <div class="flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center space-x-4">
-            <x-admin.avatar :src="$customer->avatar" :name="$customer->name" size="lg" />
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">{{ $customer->name }}</h1>
-                <div class="flex items-center space-x-3 mt-1">
-                    <span class="text-sm text-gray-500">{{ $customer->email }}</span>
-                    <span class="text-gray-300">|</span>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                        {{ $customer->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                        {{ $customer->is_active ? 'Active' : 'Inactive' }}
-                    </span>
-                    <span class="text-xs text-gray-400">ID: #{{ $customer->id }}</span>
-                </div>
-            </div>
-        </div>
-        <div class="flex items-center space-x-2">
-            <a href="{{ route('admin.customers.edit', $customer) }}" 
-               class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                <i class="fas fa-pen mr-2"></i> Edit
-            </a>
-            <a href="{{ route('admin.customers.index') }}" 
-               class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                <i class="fas fa-arrow-left mr-2"></i> Back
-            </a>
-        </div>
-    </div>
-
-    <!-- ===== STATS ===== -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Total Orders</p>
-            <p class="text-xl font-bold text-gray-900">{{ $stats['total_orders'] ?? 0 }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Total Spent</p>
-            <p class="text-xl font-bold text-green-600">${{ number_format($stats['total_spent'] ?? 0, 2) }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Average Order</p>
-            <p class="text-xl font-bold text-blue-600">${{ number_format($stats['avg_order'] ?? 0, 2) }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Member Since</p>
-            <p class="text-xl font-bold text-purple-600">{{ $customer->created_at->format('M d, Y') }}</p>
-        </div>
-    </div>
-
-    <!-- ===== CUSTOMER DETAILS ===== -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Orders -->
-        <div class="lg:col-span-2 space-y-6">
-            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                    <h3 class="text-sm font-medium text-gray-900">Recent Orders</h3>
-                    <a href="{{ route('admin.customers.orders', $customer) }}" class="text-xs text-primary-600 hover:text-primary-700">
-                        View All
+<div class="container-fluid">
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group">
+                @can('update', $customer)
+                    <a href="{{ route('admin.customers.edit', $customer) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Edit
                     </a>
+                @endcan
+                @can('delete', $customer)
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                @endcan
+                @can('suspend', $customer)
+                    @if($customer->status === 'active')
+                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#suspendModal">
+                            <i class="fas fa-pause"></i> Suspend
+                        </button>
+                    @else
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#activateModal">
+                            <i class="fas fa-play"></i> Activate
+                        </button>
+                    @endif
+                @endcan
+                <a href="{{ route('admin.customers.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Customer Information -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Customer Information</h5>
                 </div>
-                <div class="divide-y divide-gray-200">
-                    @forelse($customer->orders()->latest()->limit(5)->get() as $order)
-                        <div class="px-6 py-3 hover:bg-gray-50 transition-colors">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <a href="{{ route('admin.orders.show', $order) }}" class="text-sm font-medium text-gray-900 hover:text-primary-600">
-                                        #{{ $order->order_number }}
-                                    </a>
-                                    <p class="text-xs text-gray-500">{{ $order->created_at->format('M d, Y') }}</p>
-                                </div>
-                                <div class="flex items-center space-x-3">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                        {{ $order->status == 'completed' ? 'bg-green-100 text-green-800' : 
-                                           ($order->status == 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">
-                                        {{ ucfirst($order->status) }}
-                                    </span>
-                                    <span class="text-sm font-medium text-gray-900">${{ number_format($order->total, 2) }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="px-6 py-4 text-center text-gray-500">No orders yet</div>
-                    @endforelse
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <img src="{{ $customer->avatar ?? asset('images/default-avatar.png') }}" 
+                             alt="{{ $customer->name }}" 
+                             class="rounded-circle" 
+                             width="100" 
+                             height="100">
+                    </div>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Customer Number:</th>
+                            <td>{{ $customer->customer_number }}</td>
+                        </tr>
+                        <tr>
+                            <th>Name:</th>
+                            <td>{{ $customer->name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Email:</th>
+                            <td>{{ $customer->email }}</td>
+                        </tr>
+                        <tr>
+                            <th>Phone:</th>
+                            <td>{{ $customer->phone ?? 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Company:</th>
+                            <td>{{ $customer->company ?? 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                <span class="badge" style="background-color: {{ $customer->status->color() }}">
+                                    {{ $customer->status->label() }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Created:</th>
+                            <td>{{ $customer->created_at->format('M d, Y H:i') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Last Updated:</th>
+                            <td>{{ $customer->updated_at->format('M d, Y H:i') }}</td>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- Customer Info -->
-        <div class="space-y-6">
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <h3 class="text-sm font-medium text-gray-900 mb-4">Customer Information</h3>
-                <dl class="space-y-3">
-                    <div>
-                        <dt class="text-xs text-gray-500">Full Name</dt>
-                        <dd class="text-sm text-gray-900">{{ $customer->name }}</dd>
+        <!-- Statistics -->
+        <div class="col-md-8">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Orders</h5>
+                            <h2 class="mb-0">{{ $customer->orders_count ?? 0 }}</h2>
+                        </div>
                     </div>
-                    <div>
-                        <dt class="text-xs text-gray-500">Email</dt>
-                        <dd class="text-sm text-gray-900">{{ $customer->email }}</dd>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Spent</h5>
+                            <h2 class="mb-0">{{ money($customer->total_spent ?? 0) }}</h2>
+                        </div>
                     </div>
-                    <div>
-                        <dt class="text-xs text-gray-500">Phone</dt>
-                        <dd class="text-sm text-gray-900">{{ $customer->phone ?? 'N/A' }}</dd>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Active Projects</h5>
+                            <h2 class="mb-0">{{ $customer->active_projects_count ?? 0 }}</h2>
+                        </div>
                     </div>
-                    <div>
-                        <dt class="text-xs text-gray-500">Status</dt>
-                        <dd class="text-sm text-gray-900">{{ $customer->is_active ? 'Active' : 'Inactive' }}</dd>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Open Tickets</h5>
+                            <h2 class="mb-0">{{ $customer->open_tickets_count ?? 0 }}</h2>
+                        </div>
                     </div>
-                    <div>
-                        <dt class="text-xs text-gray-500">Joined</dt>
-                        <dd class="text-sm text-gray-900">{{ $customer->created_at->format('M d, Y H:i:s') }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs text-gray-500">Last Updated</dt>
-                        <dd class="text-sm text-gray-900">{{ $customer->updated_at->format('M d, Y H:i:s') }}</dd>
-                    </div>
-                </dl>
+                </div>
             </div>
 
-            <!-- Address -->
-            @if($customer->address)
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <h3 class="text-sm font-medium text-gray-900 mb-4">Address</h3>
-                    <p class="text-sm text-gray-600">{{ $customer->address }}</p>
+            <!-- Recent Orders -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Orders</h5>
                 </div>
-            @endif
+                <div class="card-body">
+                    @if($customer->orders->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($customer->orders->take(5) as $order)
+                                        <tr>
+                                            <td>{{ $order->order_number }}</td>
+                                            <td>{{ $order->created_at->format('M d, Y') }}</td>
+                                            <td>{{ money($order->total) }}</td>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ $order->status->color() }}">
+                                                    {{ $order->status->label() }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-info">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        @if($customer->orders->count() > 5)
+                            <div class="text-center mt-3">
+                                <a href="{{ route('admin.orders.index', ['customer' => $customer->id]) }}" class="btn btn-sm btn-primary">
+                                    View All Orders
+                                </a>
+                            </div>
+                        @endif
+                    @else
+                        <p class="text-muted">No orders found.</p>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Modals -->
+@include('admin.customers.partials.modals', ['customer' => $customer])
 @endsection

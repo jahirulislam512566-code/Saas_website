@@ -35,7 +35,7 @@
                         <x-website.btn-primary href="{{ route('website.contact') }}">
                             Start Your Project
                         </x-website.btn-primary>
-                        <x-website.btn-secondary href="#">
+                        <x-website.btn-secondary href="{{route('website.demo')}}">
                             View Live Demo
                         </x-website.btn-secondary>
                     </div>

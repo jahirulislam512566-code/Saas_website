@@ -28,10 +28,10 @@
                             <p class="text-sm text-gray-500">Billed monthly • Next payment on Dec 1, 2024</p>
                         </div>
                         <div class="flex gap-2">
-                            <x-website.btn-secondary href="{{ route('website.subscription.plans') }}">
+                            <x-website.btn-secondary href="{{ route('subscription.plans') }}">
                                 Change Plan
                             </x-website.btn-secondary>
-                            <x-website.btn-primary href="{{ route('website.checkout.index') }}">
+                            <x-website.btn-primary href="{{ route('checkout.index') }}">
                                 Upgrade
                             </x-website.btn-primary>
                         </div>

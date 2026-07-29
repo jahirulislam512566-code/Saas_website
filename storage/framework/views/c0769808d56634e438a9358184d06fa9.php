@@ -1,0 +1,1 @@
+<?php /**PATH E:\Saas website\webcraft\resources\views/frontend/about/mission.blade.php ENDPATH**/ ?>

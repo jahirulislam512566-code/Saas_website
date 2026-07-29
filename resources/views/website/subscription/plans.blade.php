@@ -46,7 +46,7 @@
                         'Custom integrations'
                     ]"
                     cta_text="Choose Plan"
-                    cta_link="{{ route('website.checkout.index', ['plan' => 'pro']) }}"
+                    cta_link="{{ route('checkout.index', ['plan' => 'pro']) }}"
                     popular="true"
                 />
                 

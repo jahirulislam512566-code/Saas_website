@@ -88,7 +88,7 @@
                         <x-website.btn-secondary>
                             <i class="fas fa-download mr-2"></i> Download PDF
                         </x-website.btn-secondary>
-                        <a href="{{ route('website.account.invoices') }}" class="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-800 transition">
+                        <a href="{{ route('account.invoices') }}" class="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-800 transition">
                             ← Back to Invoices
                         </a>
                     </div>

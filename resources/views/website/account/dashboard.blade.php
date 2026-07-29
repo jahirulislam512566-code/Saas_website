@@ -80,13 +80,13 @@
                     icon="fa-file-invoice"
                     title="View Invoices"
                     description="Download or view your invoices"
-                    link="{{ route('website.account.invoices') }}"
+                    link="{{ route('account.invoices') }}"
                 />
                 <x-website.quick-action 
                     icon="fa-cog"
                     title="Account Settings"
                     description="Update your account preferences"
-                    link="{{ route('website.account.settings') }}"
+                    link="{{ route('account.settings') }}"
                 />
             </div>
         </div>

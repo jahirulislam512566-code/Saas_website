@@ -6,15 +6,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Http\Request;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
@@ -30,6 +31,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
         'avatar',
         'company_name',
         'job_title',
@@ -75,24 +77,20 @@ class User extends Authenticatable
         'social_links' => 'array',
         'preferences' => 'array',
         'metadata' => 'array',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
     ];
 
     /**
      * The accessors to append to the model's array form.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected $appends = [
         'avatar_url',
         'full_name',
         'display_name',
         'is_online',
-        'role_names',
-        'permission_names',
         'formatted_created_at',
-        'profile_url',
+        'initials',
     ];
 
     // ============================================
@@ -187,7 +185,9 @@ class User extends Authenticatable
      */
     public function teams(): BelongsToMany
     {
-        return $this->belongsToMany(Team::class)->withPivot('role', 'permissions')->withTimestamps();
+        return $this->belongsToMany(Team::class)
+            ->withPivot('role', 'permissions')
+            ->withTimestamps();
     }
 
     /**
@@ -238,6 +238,14 @@ class User extends Authenticatable
         return $this->hasMany(Website::class);
     }
 
+    /**
+     * Get the pages for the user through websites.
+     */
+    public function pages(): HasManyThrough
+    {
+        return $this->hasManyThrough(Page::class, Website::class);
+    }
+
     // ============================================
     // SCOPES
     // ============================================
@@ -245,13 +253,17 @@ class User extends Authenticatable
     /**
      * Scope a query to only include users for a specific tenant.
      */
-    public function scopeForTenant($query, $tenantId)
+    public function scopeForTenant($query, $tenantId = null)
     {
+        if ($tenantId === null) {
+            return $query->whereNull('tenant_id');
+        }
+        
         return $query->where('tenant_id', $tenantId);
     }
 
     /**
-     * Scope a query to only include active users.
+     * Scope to only include active users.
      */
     public function scopeActive($query)
     {
@@ -259,64 +271,25 @@ class User extends Authenticatable
     }
 
     /**
-     * Scope a query to only include inactive users.
+     * Scope to only include inactive users.
      */
     public function scopeInactive($query)
     {
         return $query->where('is_active', false);
     }
- // ============================================
-// ACCESSORS & MUTATORS
-// ============================================
 
-/**
- * Mutator for the password.
- */
-public function setPasswordAttribute($value)
-{
-    if (!empty($value)) {
-        // Check if the value is already hashed
-        if (password_get_info($value)['algo'] === 0) {
-            // Not hashed yet - hash it
-            $this->attributes['password'] = Hash::make($value);
-        } else {
-            // Already hashed - store as-is
-            $this->attributes['password'] = $value;
-        }
-    }
-}
-
-/**
- * Mutator for the name.
- */
-public function setNameAttribute($value)
-{
-    $this->attributes['name'] = trim($value);
-}
-
-/**
- * Mutator for the email.
- */
-public function setEmailAttribute($value)
-{
-    $this->attributes['email'] = strtolower(trim($value));
-}
     /**
-     * Scope a query to only include users with a specific role.
+     * Scope to only include users with a specific role (via relationship).
      */
-    public function scopeWithRole($query, $role)
+    public function scopeWithRole($query, string $role)
     {
         return $query->whereHas('roles', function ($q) use ($role) {
-            if (is_string($role)) {
-                $q->where('name', $role);
-            } else {
-                $q->where('id', $role);
-            }
+            $q->where('name', $role);
         });
     }
 
     /**
-     * Scope a query to only include users with any of the given roles.
+     * Scope to only include users with any of the given roles (via relationship).
      */
     public function scopeWithAnyRole($query, array $roles)
     {
@@ -326,7 +299,7 @@ public function setEmailAttribute($value)
     }
 
     /**
-     * Scope a query to only include users who are online (last activity within 5 minutes).
+     * Scope to only include users who are online (last activity within 5 minutes).
      */
     public function scopeOnline($query)
     {
@@ -334,35 +307,36 @@ public function setEmailAttribute($value)
     }
 
     /**
-     * Scope a query to only include users who have been inactive for a while.
+     * Scope to only include users who have been inactive for a given number of days.
      */
-    public function scopeInactiveForDays($query, $days)
+    public function scopeInactiveForDays($query, int $days)
     {
         return $query->where('last_login_at', '<=', now()->subDays($days));
     }
 
     /**
-     * Scope a query to search users by name or email.
+     * Scope to search users by name, email, or company name.
      */
-    public function scopeSearch($query, $search)
+    public function scopeSearch($query, string $search)
     {
         return $query->where(function ($q) use ($search) {
             $q->where('name', 'LIKE', "%{$search}%")
-              ->orWhere('email', 'LIKE', "%{$search}%")
-              ->orWhere('company_name', 'LIKE', "%{$search}%");
+                ->orWhere('email', 'LIKE', "%{$search}%")
+                ->orWhere('company_name', 'LIKE', "%{$search}%");
         });
     }
 
     /**
-     * Scope a query to order by most recent activity.
+     * Scope to order by most recent activity.
      */
     public function scopeRecent($query)
     {
-        return $query->orderBy('last_login_at', 'desc')->orderBy('created_at', 'desc');
+        return $query->orderBy('last_login_at', 'desc')
+            ->orderBy('created_at', 'desc');
     }
 
     // ============================================
-    // ACCESSORS & MUTATORS
+    // ACCESSORS
     // ============================================
 
     /**
@@ -371,15 +345,13 @@ public function setEmailAttribute($value)
     public function getAvatarUrlAttribute(): string
     {
         if ($this->avatar) {
-            // Check if it's a full URL or storage path
             if (filter_var($this->avatar, FILTER_VALIDATE_URL)) {
                 return $this->avatar;
             }
             return Storage::disk('public')->url($this->avatar);
         }
 
-        // Generate a default avatar using UI Avatars API
-        $name = urlencode($this->name);
+        $name = urlencode($this->name ?? 'User');
         return "https://ui-avatars.com/api/?name={$name}&size=200&background=6366f1&color=fff";
     }
 
@@ -388,7 +360,7 @@ public function setEmailAttribute($value)
      */
     public function getFullNameAttribute(): string
     {
-        return $this->name;
+        return $this->name ?? 'User';
     }
 
     /**
@@ -396,7 +368,7 @@ public function setEmailAttribute($value)
      */
     public function getDisplayNameAttribute(): string
     {
-        return $this->name ?? $this->email;
+        return $this->name ?? $this->email ?? 'User';
     }
 
     /**
@@ -404,22 +376,32 @@ public function setEmailAttribute($value)
      */
     public function getInitialsAttribute(): string
     {
-        $words = explode(' ', $this->name);
+        $words = explode(' ', $this->name ?? '');
         $initials = '';
+
         foreach ($words as $word) {
             if (!empty($word)) {
                 $initials .= strtoupper($word[0]);
             }
         }
-        return substr($initials, 0, 2);
+
+        return substr($initials, 0, 2) ?: 'U';
     }
 
     /**
-     * Check if the user is online.
+     * Check if the user is online (last activity within 5 minutes).
      */
     public function getIsOnlineAttribute(): bool
     {
         return $this->last_login_at && $this->last_login_at >= now()->subMinutes(5);
+    }
+
+    /**
+     * Get formatted created date.
+     */
+    public function getFormattedCreatedAtAttribute(): string
+    {
+        return $this->created_at ? $this->created_at->format('M d, Y') : '';
     }
 
     /**
@@ -436,18 +418,12 @@ public function setEmailAttribute($value)
     public function getPermissionNamesAttribute(): string
     {
         $permissions = collect();
+
         foreach ($this->roles as $role) {
             $permissions = $permissions->merge($role->permissions->pluck('name'));
         }
-        return $permissions->unique()->implode(', ');
-    }
 
-    /**
-     * Get formatted created date.
-     */
-    public function getFormattedCreatedAtAttribute(): string
-    {
-        return $this->created_at->format('M d, Y');
+        return $permissions->unique()->implode(', ');
     }
 
     /**
@@ -464,10 +440,14 @@ public function setEmailAttribute($value)
     public function getSubscriptionStatusAttribute(): string
     {
         $activeSubscription = $this->activeSubscription;
+
         if ($activeSubscription) {
             return 'active';
         }
-        return $this->subscriptions()->where('status', 'canceled')->exists() ? 'canceled' : 'none';
+
+        return $this->subscriptions()->where('status', 'canceled')->exists()
+            ? 'canceled'
+            : 'none';
     }
 
     /**
@@ -476,45 +456,76 @@ public function setEmailAttribute($value)
     public function getSubscriptionPlanAttribute(): ?string
     {
         $activeSubscription = $this->activeSubscription;
+
         if ($activeSubscription && $activeSubscription->plan) {
             return $activeSubscription->plan->name;
         }
+
         return null;
     }
 
-    /**
-     * Mutator for the password.
-     */
-   
+    // ============================================
+    // MUTATORS
+    // ============================================
 
     /**
-     * Mutator for the name.
+     * Set the password attribute (automatically hash if not already hashed).
      */
-   
+    public function setPasswordAttribute($value): void
+    {
+        if (!empty($value)) {
+            if (password_get_info($value)['algo'] === 0) {
+                $this->attributes['password'] = Hash::make($value);
+            } else {
+                $this->attributes['password'] = $value;
+            }
+        }
+    }
 
     /**
-     * Mutator for the email.
+     * Set the name attribute (trim whitespace).
      */
-    
+    public function setNameAttribute($value): void
+    {
+        $this->attributes['name'] = trim($value ?? '');
+    }
+
+    /**
+     * Set the email attribute (lowercase and trim whitespace).
+     */
+    public function setEmailAttribute($value): void
+    {
+        $this->attributes['email'] = strtolower(trim($value ?? ''));
+    }
 
     // ============================================
-    // CUSTOM METHODS
+    // ROLE & PERMISSION METHODS
     // ============================================
 
     /**
      * Check if the user has a specific role.
+     * Checks both the role column and relationships.
      */
     public function hasRole($role): bool
     {
+        // Check direct role column first (Breeze compatibility)
+        if (isset($this->role) && $this->role === $role) {
+            return true;
+        }
+
+        // Check through relationships
         if (is_string($role)) {
             return $this->roles->contains('name', $role);
         }
+
         if ($role instanceof \Illuminate\Support\Collection) {
-            return !!$role->intersect($this->roles)->count();
+            return $role->intersect($this->roles)->isNotEmpty();
         }
+
         if (is_array($role)) {
-            return !!collect($role)->intersect($this->roles->pluck('name'))->count();
+            return collect($role)->intersect($this->roles->pluck('name'))->isNotEmpty();
         }
+
         return false;
     }
 
@@ -523,6 +534,12 @@ public function setEmailAttribute($value)
      */
     public function hasAnyRole(array $roles): bool
     {
+        // Check direct role column first
+        if (isset($this->role) && in_array($this->role, $roles)) {
+            return true;
+        }
+
+        // Check through relationships
         return $this->roles->whereIn('name', $roles)->isNotEmpty();
     }
 
@@ -531,14 +548,24 @@ public function setEmailAttribute($value)
      */
     public function hasAllRoles(array $roles): bool
     {
+        // Check direct role column first
+        if (isset($this->role)) {
+            $userRoles = [$this->role];
+            if (collect($roles)->diff($userRoles)->isEmpty()) {
+                return true;
+            }
+        }
+
+        // Check through relationships
         $userRoles = $this->roles->pluck('name');
+
         return collect($roles)->diff($userRoles)->isEmpty();
     }
 
     /**
      * Check if the user has a specific permission.
      */
-    public function hasPermission($permission): bool
+    public function hasPermission(string $permission): bool
     {
         // Check direct permissions
         if ($this->permissions->contains('name', $permission)) {
@@ -565,6 +592,7 @@ public function setEmailAttribute($value)
                 return true;
             }
         }
+
         return false;
     }
 
@@ -578,14 +606,26 @@ public function setEmailAttribute($value)
                 return false;
             }
         }
+
         return true;
     }
 
+    // ============================================
+    // ADMIN CHECK METHODS
+    // ============================================
+
     /**
      * Check if the user is an admin.
+     * Checks both the role column and relationships.
      */
     public function isAdmin(): bool
     {
+        // Check the role column directly
+        if (isset($this->role) && in_array($this->role, ['admin', 'super_admin', 'super-admin'])) {
+            return true;
+        }
+        
+        // Check through relationships
         return $this->hasRole('admin') || $this->hasRole('super-admin');
     }
 
@@ -594,15 +634,25 @@ public function setEmailAttribute($value)
      */
     public function isSuperAdmin(): bool
     {
+        // Check direct role column first
+        if (isset($this->role) && in_array($this->role, ['super_admin', 'super-admin'])) {
+            return true;
+        }
+
+        // Check through relationships
         return $this->hasRole('super-admin');
     }
+
+    // ============================================
+    // USER MANAGEMENT METHODS
+    // ============================================
 
     /**
      * Check if the user is active.
      */
     public function isActive(): bool
     {
-        return $this->is_active;
+        return $this->is_active ?? true;
     }
 
     /**
@@ -611,6 +661,7 @@ public function setEmailAttribute($value)
     public function activate(): self
     {
         $this->update(['is_active' => true]);
+
         return $this;
     }
 
@@ -620,6 +671,7 @@ public function setEmailAttribute($value)
     public function deactivate(): self
     {
         $this->update(['is_active' => false]);
+
         return $this;
     }
 
@@ -629,11 +681,12 @@ public function setEmailAttribute($value)
     public function toggleActive(): self
     {
         $this->update(['is_active' => !$this->is_active]);
+
         return $this;
     }
 
     /**
-     * Record a login.
+     * Record a user login.
      */
     public function recordLogin(Request $request): self
     {
@@ -641,76 +694,20 @@ public function setEmailAttribute($value)
             'last_login_at' => now(),
             'last_login_ip' => $request->ip(),
         ]);
-        return $this;
-    }
-
-    /**
-     * Get the user's full address.
-     */
-    public function getFullAddressAttribute(): ?string
-    {
-        $parts = array_filter([
-            $this->address_line1,
-            $this->address_line2,
-            $this->city,
-            $this->state,
-            $this->zip_code,
-            $this->country,
-        ]);
-        return !empty($parts) ? implode(', ', $parts) : null;
-    }
-
-    /**
-     * Sync roles and log changes.
-     */
-    public function syncRolesWithLogging(array $roles, string $action = 'updated'): self
-    {
-        $oldRoles = $this->roles->pluck('id')->toArray();
-        $this->roles()->sync($roles);
-        $newRoles = $this->roles->pluck('id')->toArray();
-
-        if ($oldRoles !== $newRoles) {
-            ActivityLog::create([
-                'user_id' => auth()->id(),
-                'subject_type' => self::class,
-                'subject_id' => $this->id,
-                'action' => $action,
-                'description' => "Updated roles for user: {$this->name}",
-                'properties' => [
-                    'old_roles' => $oldRoles,
-                    'new_roles' => $newRoles,
-                ],
-            ]);
-        }
 
         return $this;
     }
 
-    /**
-     * Get the user's notification preferences.
-     */
-    public function getNotificationPreference($key, $default = null)
-    {
-        return $this->preferences['notifications'][$key] ?? $default;
-    }
-
-    /**
-     * Set the user's notification preference.
-     */
-    public function setNotificationPreference($key, $value): self
-    {
-        $preferences = $this->preferences ?? [];
-        $preferences['notifications'][$key] = $value;
-        $this->update(['preferences' => $preferences]);
-        return $this;
-    }
+    // ============================================
+    // CACHE METHODS
+    // ============================================
 
     /**
      * Get the user's cache key.
      */
     public function getCacheKey(): string
     {
-        return 'user_' . $this->id . '_' . $this->updated_at->timestamp;
+        return 'user_' . $this->id . '_' . ($this->updated_at ? $this->updated_at->timestamp : time());
     }
 
     /**
@@ -719,15 +716,16 @@ public function setEmailAttribute($value)
     public function invalidateCache(): self
     {
         Cache::forget($this->getCacheKey());
+
         return $this;
     }
 
     // ============================================
-    // ADMIN HELPERS
+    // DASHBOARD STATS METHODS
     // ============================================
 
     /**
-     * Get the user's dashboard stats.
+     * Get the user's dashboard statistics.
      */
     public function getStats(): array
     {
@@ -746,7 +744,7 @@ public function setEmailAttribute($value)
     /**
      * Get the user's recent activity.
      */
-    public function getRecentActivity($limit = 5)
+    public function getRecentActivity(int $limit = 5)
     {
         return $this->activities()->latest()->limit($limit)->get();
     }
